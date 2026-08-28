@@ -9,11 +9,25 @@ From hahnExt Require Import HahnExt.
 
 Set Implicit Arguments.
 
+
+Module Type ValueSig.
+
+  Parameter t : Type.
+
+  Parameter eq_dec :
+    forall x y : t, {x = y} + {x <> y}.
+
+  Parameter init : t.
+
+End ValueSig.
+
+Module Type Events (V : ValueSig). 
+
 Definition thread_id := Basic.Ident.t.
 Definition tid_init := Coq.Numbers.BinNums.xH.
 
 Definition location := Loc.t.
-Definition value := nat.
+Definition value : Type := V.t. 
 
 (******************************************************************************)
 (** ** Execution graph events  *)
@@ -719,3 +733,5 @@ Proof using.
   destruct (classic (tid x = thread)); eauto.
 Qed.
 End Props.
+
+End Events. 

@@ -6,15 +6,18 @@ Require Import Events.
 
 Set Implicit Arguments.
 
+Module Execution 
+    (Val:ValueSig)
+    (Ev:Events Val).    
 (** Definition of an execution *)
 Record execution :=
-  { acts_set : actid -> Prop ;
-    threads_set : thread_id -> Prop;
-    lab : actid -> label;
-    rmw : actid -> actid -> Prop ;
-    data : actid -> actid -> Prop ;   (** data dependency *)
-    addr : actid -> actid -> Prop ;   (** address dependency *)
-    ctrl : actid -> actid -> Prop ;   (** control dependency *)
+  { acts_set : Ev.actid -> Prop ;
+    threads_set : Ev.thread_id -> Prop;
+    lab : Ev.actid -> Ev.label;
+    rmw : Ev.actid -> Ev.actid -> Prop ;
+    data : Ev.actid -> Ev.actid -> Prop ;   (** data dependency *)
+    addr : Ev.actid -> Ev.actid -> Prop ;   (** address dependency *)
+    ctrl : Ev.actid -> Ev.actid -> Prop ;   (** control dependency *)
 
     (** Representation of a data dependency to CAS.
         It goes from a read to an exclusive read.
@@ -26,18 +29,18 @@ Record execution :=
         In the execution, there is an rmw_dep edge between a read event representing `a := [x]'
         and a read event representing `CAS(y, a, 1)'.
      *)
-    rmw_dep : actid -> actid -> Prop ;
+    rmw_dep : Ev.actid -> Ev.actid -> Prop ;
 
-    rf : actid -> actid -> Prop ;
-    co : actid -> actid -> Prop ;
+    rf : Ev.actid -> Ev.actid -> Prop ;
+    co : Ev.actid -> Ev.actid -> Prop ;
   }.
 
 Section Execution.
 
 Variable G : execution.
 
-Notation "'Tid_' t" := (fun x => tid x = t) (at level 1).
-Notation "'NTid_' t" := (fun x => tid x <> t) (at level 1).
+Notation "'Tid_' t" := (fun x => Ev.tid x = t) (at level 1).
+Notation "'NTid_' t" := (fun x => Ev.tid x <> t) (at level 1).
 
 Notation "'E'" := (acts_set G).
 Notation "'threads_set'" := (threads_set G).
@@ -50,32 +53,32 @@ Notation "'addr'" := (addr G).
 Notation "'ctrl'" := (ctrl G).
 Notation "'rmw_dep'" := (rmw_dep G).
 
-Notation "'loc'" := (loc lab).
-Notation "'val'" := (val lab).
-Notation "'mod'" := (Events.mod lab).
-Notation "'same_loc'" := (same_loc lab).
+Notation "'loc'" := (Ev.loc lab).
+Notation "'val'" := (Ev.val lab).
+Notation "'mod'" := (Ev.mod lab).
+Notation "'same_loc'" := (Ev.same_loc lab).
 
-Notation "'R'" := (fun a => is_true (is_r lab a)).
-Notation "'W'" := (fun a => is_true (is_w lab a)).
-Notation "'F'" := (fun a => is_true (is_f lab a)).
+Notation "'R'" := (fun a => is_true (Ev.is_r lab a)).
+Notation "'W'" := (fun a => is_true (Ev.is_w lab a)).
+Notation "'F'" := (fun a => is_true (Ev.is_f lab a)).
 Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
-Notation "'R_ex'" := (fun a => is_true (R_ex lab a)).
+Notation "'R_ex'" := (fun a => is_true (Ev.R_ex lab a)).
 
-Notation "'Pln'" := (is_only_pln lab).
-Notation "'Rlx'" := (is_rlx lab).
-Notation "'Rel'" := (is_rel lab).
-Notation "'Acq'" := (is_acq lab).
-Notation "'Acqrel'" := (is_acqrel lab).
-Notation "'Acq/Rel'" := (is_ra lab).
-Notation "'Sc'" := (is_sc lab).
+Notation "'Pln'" := (Ev.is_only_pln lab).
+Notation "'Rlx'" := (Ev.is_rlx lab).
+Notation "'Rel'" := (Ev.is_rel lab).
+Notation "'Acq'" := (Ev.is_acq lab).
+Notation "'Acqrel'" := (Ev.is_acqrel lab).
+Notation "'Acq/Rel'" := (Ev.is_ra lab).
+Notation "'Sc'" := (Ev.is_sc lab).
 
-Definition sb := ⦗E⦘ ⨾ ext_sb ⨾  ⦗E⦘.
+Definition sb := ⦗E⦘ ⨾ Ev.ext_sb ⨾  ⦗E⦘.
 
 Record Wf :=
   { wf_index : forall a b, 
-      E a /\ E b /\ a <> b /\ tid a = tid b /\ ~ is_init a -> index a <> index b ;
+      E a /\ E b /\ a <> b /\ Ev.tid a = Ev.tid b /\ ~ Ev.is_init a -> Ev.index a <> Ev.index b ;
     data_in_sb : data ⊆ sb ;
     wf_dataD : data ≡ ⦗R⦘ ⨾ data ⨾ ⦗W⦘ ;
     addr_in_sb : addr ⊆ sb ;
@@ -97,14 +100,14 @@ Record Wf :=
     co_trans : transitive co ;
     wf_co_total : forall ol, is_total (E ∩₁ W ∩₁ (fun x => loc x = ol)) co ;
     co_irr : irreflexive co ;
-    wf_init : forall l, (exists b, E b /\ loc b = Some l) -> E (InitEvent l) ;
-    wf_init_lab : forall l, lab (InitEvent l) = Astore Xpln Opln l 0 ;
+    wf_init : forall l, (exists b, E b /\ loc b = Some l) -> E (Ev.InitEvent l) ;
+    wf_init_lab : forall l, lab (Ev.InitEvent l) = Ev.Astore Ev.Xpln Ev.Opln l Val.init ;
 
     rmw_dep_in_sb : rmw_dep ⊆ sb ;
     wf_rmw_depD : rmw_dep ≡ ⦗R⦘ ⨾ rmw_dep ⨾ ⦗R_ex⦘ ;
 (*     failed_rmw_fail : rmw_dep ⨾ rmw ⊆ ∅₂ ; *)
 
-    wf_threads : forall e (EE : E e), threads_set (tid e);
+    wf_threads : forall e (EE : E e), threads_set (Ev.tid e);
   }.
 (*   ⟪  wf_rmw_deps : rmw ⊆ data ∪ addr ∪ ctrl ⟫ /\
   ⟪  wf_rmw_ctrl : rmw ⨾ sb ⊆ ctrl ⟫. *)
@@ -134,7 +137,7 @@ Definition rmw_atomicity := rmw ∩ ((fr \ sb) ⨾ (co \ sb)) ⊆ ∅₂.
 Lemma sb_trans : transitive sb.
 Proof using.
 unfold sb; unfolder; ins; desf; splits; auto.
-eby eapply ext_sb_trans.
+eby eapply Ev.ext_sb_trans.
 Qed.
 
 Lemma sb_sb : sb ⨾ sb ⊆ sb.
@@ -275,7 +278,7 @@ split; [|basic_solver].
 arewrite (rmw ⊆ rmw ∩ rmw) at 1.
 rewrite (wf_rmwi WF) at 1.
 arewrite (immediate sb ⊆ sb).
-rewrite wf_sbE.
+rewrite wf_sbEv.
 basic_solver.
 Qed.
 
@@ -343,9 +346,9 @@ Qed.
 Lemma wf_sb : well_founded sb.
 Proof using. 
   unfold Execution.sb.
-  rewrite <- restr_relE. eapply wf_mon; [by apply inclusion_restr| ].
+  rewrite <- restr_relEv. eapply wf_mon; [by apply inclusion_restr| ].
   apply Wf_nat.well_founded_lt_compat
-    with (f := fun (e: actid) => if e then 0 else index e + 1).
+    with (f := fun (e: Ev.actid) => if e then 0 else index e + 1).
   intros x y SB. destruct x, y; simpl in *; lia. 
 Qed.
 
@@ -357,7 +360,7 @@ Lemma init_w WF: is_init ⊆₁ W.
 Proof using.
 unfolder; ins.
 unfold is_init in *; destruct x; desf.
-specialize (wf_init_lab WF l); unfold is_w; desf.
+specialize (wf_init_lab WF l); unfold Ev.is_w; desf.
 Qed.
 
 Lemma init_pln WF: is_init ⊆₁ Pln.
@@ -452,7 +455,7 @@ eapply WF; splits; eauto.
 unfold ext_sb in *; destruct y,z; ins; desf; desf.
 Qed.
 
-Lemma sb_tid_init x y (SB : sb x y): tid x = tid y \/ is_init x.
+Lemma sb_tid_init x y (SB : sb x y): Ev.tid x = Ev.tid y \/ is_init x.
 Proof using.
 generalize ext_sb_tid_init; unfold sb in *.
 unfolder in *; basic_solver.
@@ -511,7 +514,7 @@ unfold sb, ext_sb; basic_solver.
 Qed.
 
 Lemma same_thread x y (X : E x) (Y : E y)
-      (NINIT : ~ is_init x) (ST : tid x = tid y):
+      (NINIT : ~ is_init x) (ST : Ev.tid x = Ev.tid y):
   sb^? x y \/ sb y x.
 Proof using.
 cut (sb^? y x \/ sb x y); [basic_solver|].
@@ -915,7 +918,7 @@ Proof using.
 unfold W_ex; rewrite (dom_r (wf_rmwD WF)); basic_solver.
 Qed.
 
-Lemma W_ex_in_E WF : W_ex ⊆₁ E.
+Lemma W_ex_in_E WF : W_ex ⊆₁ Ev.
 Proof using.
   unfold W_ex. rewrite (dom_r (wf_rmwE WF)). basic_solver.
 Qed.
@@ -1096,7 +1099,7 @@ Qed.
 Lemma sb_co_irr WF :
   irreflexive ((⦗F⦘ ⨾ sb)^? ⨾ co).
 Proof using.
-  rewrite crE. rewrite seq_union_l, !seq_id_l.
+  rewrite crEv. rewrite seq_union_l, !seq_id_l.
   apply irreflexive_union. split.
   { by apply co_irr. }
   rewrite (wf_coD WF).
@@ -1147,7 +1150,7 @@ Proof using.
   apply (wf_coE WF) in COXY. destruct_seq COXY as [BB3 BB4].
   apply (wf_coD WF) in COXZ. destruct_seq COXZ as [AA1 AA2].
   apply (wf_coE WF) in COXZ. destruct_seq COXZ as [AA3 AA4].
-  apply is_w_loc in AA1. desf.
+  apply Ev.is_w_loc in AA1. desf.
   set (CC:=COXY). apply (wf_col WF) in CC. red in CC.
   set (DD:=COXZ). apply (wf_col WF) in DD. red in DD.
   destruct (classic (y = z)); auto.
@@ -1167,7 +1170,7 @@ Proof using.
   apply (wf_coE WF) in COXY. destruct_seq COXY as [BB3 BB4].
   apply (wf_coD WF) in COXZ. destruct_seq COXZ as [AA1 AA2].
   apply (wf_coE WF) in COXZ. destruct_seq COXZ as [AA3 AA4].
-  apply is_w_loc in AA2. desf.
+  apply Ev.is_w_loc in AA2. desf.
   set (CC:=COXY). apply (wf_col WF) in CC. red in CC.
   set (DD:=COXZ). apply (wf_col WF) in DD. red in DD.
   destruct (classic (y = z)); auto.
@@ -1188,7 +1191,7 @@ Proof using.
   apply (wf_coE WF) in COXY. destruct_seq COXY as [BB3 BB4].
   apply (wf_coD WF) in COXZ. destruct_seq COXZ as [AA1 AA2].
   apply (wf_coE WF) in COXZ. destruct_seq COXZ as [AA3 AA4].
-  apply is_w_loc in AA2. desf.
+  apply Ev.is_w_loc in AA2. desf.
   set (CC:=COXY). apply (wf_col WF) in CC. red in CC.
   set (DD:=COXZ). apply (wf_col WF) in DD. red in DD.
   destruct (classic (y = z)); auto.
@@ -1216,7 +1219,7 @@ Proof using.
   apply (wf_coE WF) in CO. destruct_seq CO as [EX EY].
   apply (wf_coD WF) in DD. destruct_seq DD as [XLOC WZ].
   apply (wf_coE WF) in DD. destruct_seq DD as [EX' EZ].
-  apply is_w_loc in XLOC. desf.
+  apply Ev.is_w_loc in XLOC. desf.
   assert (loc y = Some l /\ loc z = Some l) as [YLOC ZLOC].
   { split; rewrite <- XLOC; symmetry; by apply (wf_col WF). }
 
@@ -1229,7 +1232,7 @@ Proof using.
   assert (loc c = Some l) as LOCC.
   { rewrite <- YLOC. by apply (wf_col WF). }
   assert (E c) as EC.
-  { by apply P_in_E. }
+  { by apply P_in_Ev. }
   assert (W c) as WC.
   { by apply P_in_W. }
   
@@ -1255,7 +1258,7 @@ Proof using.
   apply (wf_coE WF) in AA. destruct_seq AA as [EX EZ].
   apply (wf_coD WF) in BB. destruct_seq BB as [WY ZLOC].
   apply (wf_coE WF) in BB. destruct_seq BB as [EY FF].
-  apply is_w_loc in ZLOC. desf.
+  apply Ev.is_w_loc in ZLOC. desf.
   assert (loc x = Some l /\ loc y = Some l) as [XLOC YLOC].
   { rewrite <- !ZLOC. split; by apply (wf_col WF). }
   edestruct (wf_co_total WF); eauto.
@@ -1289,7 +1292,7 @@ Proof using.
   apply (wf_coE WF) in AA. destruct_seq AA as [EZ EY].
   apply (wf_coD WF) in BB. destruct_seq BB as [ZLOC WX].
   apply (wf_coE WF) in BB. destruct_seq BB as [FF EX].
-  apply is_w_loc in ZLOC. desf.
+  apply Ev.is_w_loc in ZLOC. desf.
   assert (loc x = Some l /\ loc y = Some l) as [XLOC YLOC].
   { rewrite <- !ZLOC. split; symmetry; by apply (wf_col WF). }
   edestruct (wf_co_total WF); eauto.
