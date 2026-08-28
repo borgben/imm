@@ -10,43 +10,52 @@ Require Import Power_ppo.
 
 Set Implicit Arguments.
 
-Section Power.
+Module Power
+    (Val : ValueSig)
+    (Ev : Events Val).
+
+Module Import Ppo := Power_ppo Val Ev.
+Module Import Fences := Ppo.Fences.
+Module Import Eco := Fences.Eco.
+Module Import Ex := Eco.Ex.
+
+Section PowerDefs.
 
 Variable G : execution.
 
-Notation "'E'" := (acts_set G).
-Notation "'lab'" := (lab G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
-Notation "'ctrli'" := (ctrli G).
-Notation "'deps'" := (deps G).
-Notation "'fre'" := (fre G).
-Notation "'rfe'" := (rfe G).
-Notation "'coe'" := (coe G).
-Notation "'rfi'" := (rfi G).
-Notation "'fri'" := (fri G).
-Notation "'fr'" := (fr G).
-Notation "'eco'" := (eco G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'lab'" := (Ex.lab G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
+Notation "'data'" := (Ex.data G).
+Notation "'addr'" := (Ex.addr G).
+Notation "'ctrl'" := (Ex.ctrl G).
+Notation "'ctrli'" := (Ppo.ctrli G).
+Notation "'deps'" := (Ex.deps G).
+Notation "'fre'" := (Ex.fre G).
+Notation "'rfe'" := (Ex.rfe G).
+Notation "'coe'" := (Ex.coe G).
+Notation "'rfi'" := (Ex.rfi G).
+Notation "'fri'" := (Ex.fri G).
+Notation "'fr'" := (Ex.fr G).
+Notation "'eco'" := (Eco.eco G).
 
-Notation "'sync'" := (sync G).
-Notation "'lwsync'" := (lwsync G).
-Notation "'fence'" := (fence G).
-Notation "'ppo'" := (ppo G).
+Notation "'sync'" := (Fences.sync G).
+Notation "'lwsync'" := (Fences.lwsync G).
+Notation "'fence'" := (Fences.fence G).
+Notation "'ppo'" := (Ppo.ppo G).
 
-Notation "'R'" := (fun a => is_true (is_r lab a)).
-Notation "'W'" := (fun a => is_true (is_w lab a)).
-Notation "'F'" := (fun a => is_true (is_f lab a)).
+Notation "'R'" := (fun a => is_true (Ev.is_r lab a)).
+Notation "'W'" := (fun a => is_true (Ev.is_w lab a)).
+Notation "'F'" := (fun a => is_true (Ev.is_f lab a)).
 Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
 
-Notation "'F^lwsync'" := (F ∩₁ (fun a => is_true (is_ra lab a))).
-Notation "'F^sync'" := (F ∩₁ (fun a => is_true (is_sc lab a))).
+Notation "'F^lwsync'" := (F ∩₁ (fun a => is_true (Ev.is_ra lab a))).
+Notation "'F^sync'" := (F ∩₁ (fun a => is_true (Ev.is_sc lab a))).
 
 (******************************************************************************)
 (** ** Derived relations  *)
@@ -67,12 +76,12 @@ Definition prop := prop1 ∪ prop2.
 Implicit Type WF : Wf G.
 Implicit Type COMP : complete G.
 Implicit Type ATOM : rmw_atomicity G.
-Implicit Type SC_PER_LOC : sc_per_loc G.
+Implicit Type SC_PER_LOC : Eco.sc_per_loc G.
 
 Definition PowerConsistent :=
   ⟪ WF : Wf G ⟫ /\
   ⟪ COMP : complete G ⟫ /\
-  ⟪ SC_PER_LOC: sc_per_loc G ⟫ /\
+  ⟪ SC_PER_LOC: Eco.sc_per_loc G ⟫ /\
   ⟪ POWER_ATOMICITY : rmw_atomicity G ⟫ /\
   ⟪ OBSERVATION : irreflexive (fre ⨾ prop ⨾ hb＊) ⟫ /\
   ⟪ PROPAGATION : acyclic (co ∪ prop) ⟫ /\
@@ -252,7 +261,7 @@ Qed.
 Proposition fence_hb_fri WF: 
   fence ⨾ hb＊ ⨾ fri ⊆ fence ⨾ hb＊ ⨾ co^?.
 Proof using.
-unfold Power_fences.fence.
+unfold Fences.fence.
 generalize (sync_hb_rbi WF) (lwsync_hb_rbi WF).
 relsf.
 basic_solver 12.
@@ -357,7 +366,7 @@ Qed.
 Lemma S_helper_2: 
  ⦗RW⦘ ⨾ (sb ⨾ ⦗F^lwsync⦘ ∪ eco ∩ sb)^? ⨾ sb^? ⨾ ⦗F^lwsync⦘ ⨾ sb ⨾ ⦗W⦘  ⊆ fence.
 Proof using.
-unfold Power_fences.fence; rewrite lwsync_alt.
+unfold Fences.fence; rewrite lwsync_alt.
 arewrite ((sb ⨾ ⦗F^lwsync⦘ ∪ eco ∩ sb)^? ⨾ sb^? ⊆ sb^?).
 generalize (@sb_trans G); basic_solver.
 arewrite (⦗RW⦘ ⨾ sb^? ⨾ ⦗F^lwsync⦘ ⊆ ⦗RW⦘ ⨾ sb ⨾ ⦗F^lwsync⦘) by type_solver.
@@ -492,5 +501,7 @@ Proof using.
   rewrite (dom_l (wf_ecoD (CON_WF CON))); type_solver.
   generalize (eco_fence_hb_irr CON), (eco_trans (CON_WF CON)); basic_solver 12.
 Qed.
+
+End PowerDefs.
 
 End Power.

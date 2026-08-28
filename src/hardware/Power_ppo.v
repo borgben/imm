@@ -4,39 +4,47 @@
 From hahn Require Import Hahn.
 Require Import Events.
 Require Import Execution.
+Require Import Power_fences.
 
 Set Implicit Arguments.
 
-Section Power_ppo.
+Module Power_ppo
+    (Val : ValueSig)
+    (Ev : Events Val).
+
+Module Import Fences := Power_fences Val Ev.
+Module Import Ex := Fences.Ex.
+
+Section PowerPpoDefs.
 
 Variable G : execution.
 
-Notation "'E'" := (acts_set G).
-Notation "'lab'" := (lab G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
-Notation "'deps'" := (deps G).
-Notation "'fre'" := (fre G).
-Notation "'rfe'" := (rfe G).
-Notation "'coe'" := (coe G).
-Notation "'rfi'" := (rfi G).
-Notation "'fri'" := (fri G).
-Notation "'fr'" := (fr G).
-Notation "'detour'" := (detour G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'lab'" := (Ex.lab G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
+Notation "'data'" := (Ex.data G).
+Notation "'addr'" := (Ex.addr G).
+Notation "'ctrl'" := (Ex.ctrl G).
+Notation "'deps'" := (Ex.deps G).
+Notation "'fre'" := (Ex.fre G).
+Notation "'rfe'" := (Ex.rfe G).
+Notation "'coe'" := (Ex.coe G).
+Notation "'rfi'" := (Ex.rfi G).
+Notation "'fri'" := (Ex.fri G).
+Notation "'fr'" := (Ex.fr G).
+Notation "'detour'" := (Ex.detour G).
 
-Notation "'R'" := (fun a => is_true (is_r lab a)).
-Notation "'W'" := (fun a => is_true (is_w lab a)).
-Notation "'F'" := (fun a => is_true (is_f lab a)).
+Notation "'R'" := (fun a => is_true (Ev.is_r lab a)).
+Notation "'W'" := (fun a => is_true (Ev.is_w lab a)).
+Notation "'F'" := (fun a => is_true (Ev.is_f lab a)).
 Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
 
-Notation "'F^isync'" := (F ∩₁ (fun a => is_true (is_rlx lab a))).
+Notation "'F^isync'" := (F ∩₁ (fun a => is_true (Ev.is_rlx lab a))).
 
 Implicit Type WF : Wf G.
 
@@ -343,7 +351,7 @@ Qed.
 
 Lemma ci0_in_sb WF: ci0 ⊆ sb.
 Proof using.
-unfold ci0, Execution.detour.
+unfold ci0, Ex.detour.
 rewrite ctrli_in_sb; try done.
 basic_solver 42.
 Qed.
@@ -446,7 +454,7 @@ Qed.
 
 Lemma deps_in_ppo WF: deps ⨾ ⦗W⦘ ⊆ ppo.
 Proof using.
-unfold Execution.deps, ppo.
+unfold Ex.deps, ppo.
 rewrite (wf_dataD WF), (wf_addrD WF), (wf_ctrlD WF).
 rewrite data_in_ii, addr_in_ii.
 generalize ii_in_ic cc_in_ic ctrl_in_cc.
@@ -657,7 +665,7 @@ Qed.
 Lemma deps_in_cc: deps ⨾ ⦗RW⦘ ⊆ cc.
 Proof using.
 rewrite <- cc0_in_cc.
-unfold Execution.deps, cc0; basic_solver 42.
+unfold Ex.deps, cc0; basic_solver 42.
 Qed.
 
 Lemma deps_in_ic : deps ⨾ ⦗RW⦘ ⊆ ic.
@@ -746,7 +754,7 @@ Lemma deps_R_in_ppo WF:
   (deps ∪ addr ⨾ sb) ⨾ ⦗R⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ppo.
 Proof using.
  arewrite ((deps ∪ addr ⨾ sb) ⨾ ⦗R⦘ ⊆ ctrl ∪ addr ⨾ sb^?).
-  by unfold Execution.deps; rewrite (wf_dataD WF); type_solver 42.
+  by unfold Ex.deps; rewrite (wf_dataD WF); type_solver 42.
 relsf.
 sin_rewrite (ctrl_sb WF).
 arewrite (ctrl ⊆ deps).
@@ -937,5 +945,7 @@ Qed.
 
 
 
+
+End PowerPpoDefs.
 
 End Power_ppo.

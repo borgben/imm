@@ -4,40 +4,48 @@
 From hahn Require Import Hahn.
 Require Import Events.
 Require Import Execution.
+Require Import Execution_eco.
 
 Set Implicit Arguments.
 
-Section Power_fences.
+Module Power_fences
+    (Val : ValueSig)
+    (Ev : Events Val).
+
+Module Import Eco := Execution_eco Val Ev.
+Module Import Ex := Eco.Ex.
+
+Section PowerFencesDefs.
 
 Variable G : execution.
 
-Notation "'E'" := (acts_set G).
-Notation "'lab'" := (lab G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'lab'" := (Ex.lab G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
+Notation "'data'" := (Ex.data G).
+Notation "'addr'" := (Ex.addr G).
+Notation "'ctrl'" := (Ex.ctrl G).
 (* Notation "'ctrli'" := (ctrli G). *)
-Notation "'deps'" := (deps G).
-Notation "'fre'" := (fre G).
-Notation "'rfe'" := (rfe G).
-Notation "'coe'" := (coe G).
-Notation "'rfi'" := (rfi G).
-Notation "'fri'" := (fri G).
-Notation "'fr'" := (fr G).
+Notation "'deps'" := (Ex.deps G).
+Notation "'fre'" := (Ex.fre G).
+Notation "'rfe'" := (Ex.rfe G).
+Notation "'coe'" := (Ex.coe G).
+Notation "'rfi'" := (Ex.rfi G).
+Notation "'fri'" := (Ex.fri G).
+Notation "'fr'" := (Ex.fr G).
 
-Notation "'R'" := (fun a => is_true (is_r lab a)).
-Notation "'W'" := (fun a => is_true (is_w lab a)).
-Notation "'F'" := (fun a => is_true (is_f lab a)).
+Notation "'R'" := (fun a => is_true (Ev.is_r lab a)).
+Notation "'W'" := (fun a => is_true (Ev.is_w lab a)).
+Notation "'F'" := (fun a => is_true (Ev.is_f lab a)).
 Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
 
-Notation "'F^lwsync'" := (F ∩₁ (fun a => is_true (is_ra lab a))).
-Notation "'F^sync'" := (F ∩₁ (fun a => is_true (is_sc lab a))).
+Notation "'F^lwsync'" := (F ∩₁ (fun a => is_true (Ev.is_ra lab a))).
+Notation "'F^sync'" := (F ∩₁ (fun a => is_true (Ev.is_sc lab a))).
 
 Implicit Type WF : Wf G.
 
@@ -275,5 +283,7 @@ arewrite(rfi ⊆ sb).
 generalize (RW_sb_fence_in_fence WF).
 basic_solver 42.
 Qed.
+
+End PowerFencesDefs.
 
 End Power_fences.

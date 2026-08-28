@@ -674,23 +674,11 @@ Proof using. unfold ext_sb. basic_solver. Qed.
 
 #[global]
 Hint Unfold set_union set_inter is_r is_w is_f R_ex : type_unfolderDb.
-Tactic Notation "type_unfolder" :=  repeat autounfold with type_unfolderDb in *.
-
-Tactic Notation "type_solver" int_or_var(index) := 
-  type_unfolder; basic_solver index.
-
-Tactic Notation "type_solver" :=  type_solver 4.
 
 #[global]
 Hint Unfold set_union set_inter is_r is_w is_f R_ex : mode_unfolderDb.
 #[global]
 Hint Unfold is_only_pln is_only_rlx is_rlx is_rel is_acq is_acqrel is_sc is_ra is_xacq : mode_unfolderDb.
-Tactic Notation "mode_unfolder" :=  repeat autounfold with mode_unfolderDb in *.
-
-Tactic Notation "mode_solver" int_or_var(index) := 
-  mode_unfolder; basic_solver index.
-
-Tactic Notation "mode_solver" :=  mode_solver 4.
 
 Section EventsCountability. 
   Definition actid_alt: Type := location + thread_id * nat.
@@ -734,4 +722,24 @@ Proof using.
 Qed.
 End Props.
 
-End Events. 
+End Events.
+
+(******************************************************************************)
+(** ** Tactics *)
+(******************************************************************************)
+
+Tactic Notation "type_unfolder" :=
+  repeat autounfold with type_unfolderDb in *.
+
+Tactic Notation "type_solver" int_or_var(index) :=
+  type_unfolder; basic_solver index.
+
+Tactic Notation "type_solver" := type_solver 4.
+
+Tactic Notation "mode_unfolder" :=
+  repeat autounfold with mode_unfolderDb in *.
+
+Tactic Notation "mode_solver" int_or_var(index) :=
+  mode_unfolder; basic_solver index.
+
+Tactic Notation "mode_solver" := mode_solver 4.

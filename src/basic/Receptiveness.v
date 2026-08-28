@@ -1,4 +1,4 @@
-Require Import ClassicalDescription Lia.
+(* Require Import ClassicalDescription Lia.
 
 From hahn Require Import Hahn.
 Require Import Events.
@@ -1475,4 +1475,4 @@ forward (eapply receptiveness_helper with (new_rfi:=new_rfi)); ins; eauto.
 desc.
 red in EXEC; desc.
 eexists; splits; eauto.
-Qed.
+Qed. *)

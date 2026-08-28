@@ -10,44 +10,51 @@ Require Import Execution_eco.
 
 Set Implicit Arguments.
 
-Section Arm.
+Module Arm
+    (Val : ValueSig)
+    (Ev : Events Val).
+
+Module Import Eco := Execution_eco Val Ev.
+Module Import Ex := Eco.Ex.
+
+Section ArmDefs.
 
 Variable G : execution.
 
-Notation "'E'" := (acts_set G).
-Notation "'lab'" := (lab G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
-Notation "'deps'" := (deps G).
-Notation "'fre'" := (fre G).
-Notation "'rfe'" := (rfe G).
-Notation "'coe'" := (coe G).
-Notation "'detour'" := (detour G).
-Notation "'coi'" := (coi G).
-Notation "'rfi'" := (rfi G).
-Notation "'fri'" := (fri G).
-Notation "'fr'" := (fr G).
-Notation "'eco'" := (eco G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'lab'" := (Ex.lab G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
+Notation "'data'" := (Ex.data G).
+Notation "'addr'" := (Ex.addr G).
+Notation "'ctrl'" := (Ex.ctrl G).
+Notation "'deps'" := (Ex.deps G).
+Notation "'fre'" := (Ex.fre G).
+Notation "'rfe'" := (Ex.rfe G).
+Notation "'coe'" := (Ex.coe G).
+Notation "'detour'" := (Ex.detour G).
+Notation "'coi'" := (Ex.coi G).
+Notation "'rfi'" := (Ex.rfi G).
+Notation "'fri'" := (Ex.fri G).
+Notation "'fr'" := (Ex.fr G).
+Notation "'eco'" := (Eco.eco G).
 
-Notation "'R'" := (fun a => is_true (is_r lab a)).
-Notation "'W'" := (fun a => is_true (is_w lab a)).
-Notation "'F'" := (fun a => is_true (is_f lab a)).
+Notation "'R'" := (fun a => is_true (Ev.is_r lab a)).
+Notation "'W'" := (fun a => is_true (Ev.is_w lab a)).
+Notation "'F'" := (fun a => is_true (Ev.is_f lab a)).
 Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
-Notation "'W_ex'" := (W_ex G).
+Notation "'W_ex'" := (Ex.W_ex G).
 
-Notation "'L'" := (W ∩₁ (fun a => is_true (is_rel lab a))).
-Notation "'Q'" := (R ∩₁ (fun a => is_true (is_acq lab a))).
-Notation "'A'" := (R ∩₁ (fun a => is_true (is_sc  lab a))).
+Notation "'L'" := (W ∩₁ (fun a => is_true (Ev.is_rel lab a))).
+Notation "'Q'" := (R ∩₁ (fun a => is_true (Ev.is_acq lab a))).
+Notation "'A'" := (R ∩₁ (fun a => is_true (Ev.is_sc  lab a))).
 
-Notation "'F^ld'" := (F ∩₁ (fun a => is_true (is_acq lab a))).
-Notation "'F^sy'" := (F ∩₁ (fun a => is_true (is_rel lab a))).
+Notation "'F^ld'" := (F ∩₁ (fun a => is_true (Ev.is_acq lab a))).
+Notation "'F^sy'" := (F ∩₁ (fun a => is_true (Ev.is_rel lab a))).
 
 (******************************************************************************)
 (** ** Derived relations  *)
@@ -81,12 +88,12 @@ Definition bob :=
 Implicit Type WF : Wf G.
 Implicit Type COMP : complete G.
 Implicit Type ATOM : rmw_atomicity G.
-Implicit Type SC_PER_LOC : sc_per_loc G.
+Implicit Type SC_PER_LOC : Eco.sc_per_loc G.
 
 Definition ArmConsistent :=
   ⟪ WF : Wf G ⟫ /\
   ⟪ COMP : complete G ⟫ /\
-  ⟪ SC_PER_LOC: sc_per_loc G ⟫ /\
+  ⟪ SC_PER_LOC: Eco.sc_per_loc G ⟫ /\
   ⟪ POWER_ATOMICITY : rmw_atomicity G ⟫ /\
   ⟪ ACYC : acyclic (obs ∪ dob ∪ aob ∪ bob) ⟫.
 
@@ -218,7 +225,7 @@ Qed.
 (******************************************************************************)
 
 Lemma obs_in_eco : obs ⊆ eco.
-Proof using. unfold Arm.obs. rewrite rfe_in_eco, fre_in_eco, coe_in_eco. eauto with hahn. Qed.
+Proof using. unfold obs. rewrite rfe_in_eco, fre_in_eco, coe_in_eco. eauto with hahn. Qed.
 
 Lemma eco_in_sb_obs_sb WF :  eco ⊆ sb^? ⨾ obs^? ⨾ obs^? ⨾ sb^?.
 Proof using.
@@ -235,7 +242,7 @@ Qed.
 
 Lemma detour_in_obs : detour ⊆ obs⁺ .
 Proof using.
-  unfold Execution.detour.
+  unfold Ex.detour.
   arewrite (coe ⊆ obs).
   arewrite (rfe ⊆ obs).
   rewrite <- ct_ct.
@@ -404,7 +411,7 @@ Lemma deps_in_ctrl_or_dob WF:
     deps ⊆ ctrl ∪ dob.
 Proof using.
     rewrite (dob_alt WF).
-unfold Execution.deps;
+unfold Ex.deps;
 rewrite (dom_r (wf_dataD WF)) at 1.
 basic_solver 12.
 Qed.
@@ -447,7 +454,7 @@ Qed.
 
 Lemma external_alt_bob' WF CON : acyclic (obs ∪ dob ∪ aob ∪ bob').
 Proof using.
-  assert (SC_PER_LOC : sc_per_loc G) by apply CON.
+  assert (SC_PER_LOC : Eco.sc_per_loc G) by apply CON.
   unfold bob'; rewrite <- !unionA in *.
   assert (APO: acyclic sb).
   { apply trans_irr_acyclic; eauto using sb_trans, sb_irr. }
@@ -562,4 +569,6 @@ Proof using.
   eauto with hahn.
 Qed.
 
-End Arm.
+End ArmDefs.
+
+End Arm. 

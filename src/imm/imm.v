@@ -14,56 +14,64 @@ Require Import imm_ppo.
 
 Set Implicit Arguments.
 
-Section IMM.
+Module imm (Val : ValueSig) (Ev : Events Val).
+
+Module Import Ppo := imm_ppo Val Ev.
+Module Import Hb := Ppo.Hb.
+Module Import Bob := Hb.Bob.
+Module Import Eco := Bob.Eco.
+Module Import Ex := Eco.Ex.
+
+Section ImmDefs.
 
 Variable G : execution.
 
-Notation "'E'" := (acts_set G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
-Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
+Notation "'data'" := (Ex.data G).
+Notation "'addr'" := (Ex.addr G).
+Notation "'ctrl'" := (Ex.ctrl G).
+Notation "'rmw_dep'" := (Ex.rmw_dep G).
 
-Notation "'fr'" := (fr G).
-Notation "'eco'" := (eco G).
-Notation "'coe'" := (coe G).
-Notation "'coi'" := (coi G).
-Notation "'deps'" := (deps G).
-Notation "'rfi'" := (rfi G).
-Notation "'rfe'" := (rfe G).
-Notation "'detour'" := (detour G).
-Notation "'hb'" := (hb G).
-Notation "'sw'" := (sw G).
+Notation "'fr'" := (Ex.fr G).
+Notation "'eco'" := (Eco.eco G).
+Notation "'coe'" := (Ex.coe G).
+Notation "'coi'" := (Ex.coi G).
+Notation "'deps'" := (Ex.deps G).
+Notation "'rfi'" := (Ex.rfi G).
+Notation "'rfe'" := (Ex.rfe G).
+Notation "'detour'" := (Ex.detour G).
+Notation "'hb'" := (Hb.hb G).
+Notation "'sw'" := (Hb.sw G).
 
-Notation "'ar_int'" := (ar_int G).
+Notation "'ar_int'" := (Ppo.ar_int G).
 
-Notation "'lab'" := (lab G).
-Notation "'loc'" := (loc lab).
-Notation "'val'" := (val lab).
-Notation "'mod'" := (mod lab).
-Notation "'same_loc'" := (same_loc lab).
+Notation "'lab'" := (Ex.lab G).
+Notation "'loc'" := (Ev.loc lab).
+Notation "'val'" := (Ev.val lab).
+Notation "'mod'" := (Ev.mod lab).
+Notation "'same_loc'" := (Ev.same_loc lab).
 
-Notation "'R'" := (fun a => is_true (is_r lab a)).
-Notation "'W'" := (fun a => is_true (is_w lab a)).
-Notation "'F'" := (fun a => is_true (is_f lab a)).
+Notation "'R'" := (fun a => is_true (Ev.is_r lab a)).
+Notation "'W'" := (fun a => is_true (Ev.is_w lab a)).
+Notation "'F'" := (fun a => is_true (Ev.is_f lab a)).
 Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
-Notation "'R_ex'" := (R_ex G).
-Notation "'W_ex'" := (W_ex G).
-Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
+Notation "'R_ex'" := (fun a => is_true (Ev.R_ex lab a)).
+Notation "'W_ex'" := (Ex.W_ex G).
+Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (Ev.is_xacq lab a))).
 
-Notation "'Pln'" := (fun a => is_true (is_only_pln lab a)).
-Notation "'Rlx'" := (fun a => is_true (is_rlx lab a)).
-Notation "'Rel'" := (fun a => is_true (is_rel lab a)).
-Notation "'Acq'" := (fun a => is_true (is_acq lab a)).
-Notation "'Acqrel'" := (fun a => is_true (is_acqrel lab a)).
-Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
-Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
+Notation "'Pln'" := (fun a => is_true (Ev.is_only_pln lab a)).
+Notation "'Rlx'" := (fun a => is_true (Ev.is_rlx lab a)).
+Notation "'Rel'" := (fun a => is_true (Ev.is_rel lab a)).
+Notation "'Acq'" := (fun a => is_true (Ev.is_acq lab a)).
+Notation "'Acqrel'" := (fun a => is_true (Ev.is_acqrel lab a)).
+Notation "'Acq/Rel'" := (fun a => is_true (Ev.is_ra lab a)).
+Notation "'Sc'" := (fun a => is_true (Ev.is_sc lab a)).
 
 (******************************************************************************)
 (** ** Derived relations  *)
@@ -78,7 +86,7 @@ Definition psc := ⦗F∩₁Sc⦘ ⨾  hb ⨾ eco ⨾ hb ⨾ ⦗F∩₁Sc⦘.
 
 Definition ar := psc ∪ rfe ∪ ar_int.
 
-Lemma ppo_in_ar : ppo G ⊆ ar.
+Lemma ppo_in_ar : Ppo.ppo G ⊆ ar.
 Proof using. rewrite ppo_in_ar_int. by arewrite (ar_int ⊆ ar). Qed.
 
 (******************************************************************************)
@@ -89,7 +97,7 @@ Definition acyc_ext := acyclic ar.
 
 Definition imm_consistent := 
   ⟪ Comp : complete G ⟫ /\
-  ⟪ Cint : coherence G ⟫ /\
+  ⟪ Cint : Hb.coherence G ⟫ /\
   ⟪ Cext : acyc_ext ⟫ /\
   ⟪ Cpsc : acyclic (psc_f ∪ psc_base) ⟫ /\
   ⟪ Cat  : rmw_atomicity G ⟫.
@@ -97,7 +105,7 @@ Definition imm_consistent :=
 Implicit Type WF : Wf G.
 Implicit Type COMP : complete G.
 
-Implicit Type COH : coherence G.
+Implicit Type COH : Hb.coherence G.
 Implicit Type PSC : acyclic psc.
 
 (******************************************************************************)
@@ -173,7 +181,7 @@ Qed.
 (** ** init *)
 (******************************************************************************)
 
-Lemma no_psc_to_init WF : psc ≡ psc ⨾  ⦗fun x => ~ is_init x⦘.
+Lemma no_psc_to_init WF : psc ≡ psc ⨾  ⦗fun x => ~ Ev.is_init x⦘.
 Proof using.
 split; [|basic_solver].
 rewrite wf_pscD at 1.
@@ -190,7 +198,7 @@ Proof using.
 rewrite wf_pscD.
 rotate 4.
 arewrite ((rf⁻¹)^? ⨾ co ⨾ rf^? ⊆ eco).
-  by unfold Execution_eco.eco, Execution.fr; basic_solver 42.
+  by unfold Eco.eco, Ex.fr; basic_solver 42.
 arewrite (⦗F∩₁Sc⦘ ⨾ hb ⨾ eco ⨾ hb ⨾ ⦗F∩₁Sc⦘ ⊆ psc).
 unfolder; ins; desf.
 eby eapply PSC, t_trans; apply t_step.
@@ -257,14 +265,14 @@ Proof using. unfold ar. eauto with hahn. Qed.
 Lemma rmw_sb_cr_W_in_ar WF : rmw ⨾ sb^? ⨾ ⦗W⦘ ⊆ ar.
 Proof using.
   rewrite <- ppo_in_ar.
-  unfold imm_ppo.ppo.
+  unfold Ppo.ppo.
   rewrite <- ct_step, (dom_l (wf_rmwD WF)).
   basic_solver 21.
 Qed.
 
 Lemma fwbob_in_ar : fwbob G ⊆ ar.
 Proof using.
-  unfold ar. unfold imm_ppo.ar_int.
+  unfold ar. unfold Ppo.ar_int.
   rewrite fwbob_in_bob. basic_solver 10.
 Qed.
 
@@ -273,7 +281,7 @@ Lemma sw_in_ar WF :
 Proof using.
   assert ((sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⊆ ar^?) as BB.
   { arewrite (⦗Acq⦘ ⊆ ⦗Acq/Rel⦘) by mode_solver.
-      unfold ar, imm_ppo.ar_int, imm_bob.bob, imm_bob.fwbob.
+      unfold ar, Ppo.ar_int, Bob.bob, Bob.fwbob.
       basic_solver 21. }
 
   assert (⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb)^? ⨾ ⦗W⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⊆ sb^? ⨾ ⦗W⦘ ⨾ ar^?) as DD.
@@ -291,7 +299,7 @@ Proof using.
     basic_solver 10. }
 
   assert (⦗W⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⨾ (sb ∩ same_loc)^? ⊆ ⦗W⦘ ⨾ sb ∩ same_loc) as UU.
-  { unfold Events.same_loc.
+  { unfold Ev.same_loc.
     unfolder. ins. desf; eexists; splits; eauto.
     { eapply sb_trans; eauto. }
     etransitivity; eauto. }
@@ -299,7 +307,7 @@ Proof using.
   assert (ar^? ⨾ ar ⨾ ar^? ⊆ ar⁺) as WW.
   { arewrite (ar ⊆ ar⁺) at 2. by rewrite ct_cr, cr_ct. }
 
-  unfold imm_hb.sw, imm_hb.release, imm_hb.rs.
+  unfold Hb.sw, Hb.release, Hb.rs.
   rewrite (sw_in_ar_helper_old WF).
   
   rewrite (dom_l (wf_rfeD WF)).
@@ -365,7 +373,7 @@ Qed.
 Lemma f_sc_hb_f_sc_in_ar WF : 
   ⦗F ∩₁ Sc⦘ ⨾ hb ⨾ ⦗F ∩₁ Sc⦘ ⊆ ar⁺.
 Proof using.
-unfold imm_hb.hb.
+unfold Hb.hb.
 rewrite (dom_r (wf_swD WF)).
 rewrite (sw_in_ar WF); relsf.
 arewrite ((sb ∪ ((sb^? ⨾ ⦗W⦘ ⨾ ar⁺ ⨾ (rmw ⨾ sb^?)^?) ⨾ ⦗F ∩₁ Acq ∪₁ R ∩₁ Acq⦘
@@ -373,13 +381,13 @@ arewrite ((sb ∪ ((sb^? ⨾ ⦗W⦘ ⨾ ar⁺ ⨾ (rmw ⨾ sb^?)^?) ⨾ ⦗F �
 by basic_solver 21.
 rewrite path_union.
 generalize (@sb_trans G); ins; relsf; unionL.
-by rewrite <- ct_step; unfold ar, imm_ppo.ar_int, imm_bob.bob, imm_bob.fwbob; mode_solver 21.
+by rewrite <- ct_step; unfold ar, Ppo.ar_int, Bob.bob, Bob.fwbob; mode_solver 21.
 rewrite ct_seq_swap, !seqA.
 rewrite ct_rotl, !seqA.
 arewrite ((rmw ⨾ sb^?)^? ⨾ ⦗F ∩₁ Acq ∪₁ R ∩₁ Acq⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ar^?).
 { case_refl (rmw ⨾ sb^?).
   - arewrite (⦗F ∩₁ Acq ∪₁ R ∩₁ Acq⦘ ⊆ ⦗R ∩₁ Acq⦘ ∪ ⦗F ∩₁ Acq/Rel⦘) by mode_solver.
-    unfold ar, imm_ppo.ar_int, imm_bob.bob, imm_bob.fwbob; basic_solver 15.
+    unfold ar, Ppo.ar_int, Bob.bob, Bob.fwbob; basic_solver 15.
   - arewrite_id ⦗F ∩₁ Acq ∪₁ R ∩₁ Acq⦘. rewrite seq_id_l.
     arewrite (sb^? ⨾ sb^? ⊆ sb^?).
     { generalize (@sb_trans G). basic_solver. }
@@ -387,9 +395,9 @@ arewrite ((rmw ⨾ sb^?)^? ⨾ ⦗F ∩₁ Acq ∪₁ R ∩₁ Acq⦘ ⨾ sb^? �
 arewrite ((rmw ⨾ sb^?)^? ⨾ ⦗F ∩₁ Acq ∪₁ R ∩₁ Acq⦘ ⨾ sb^? ⊆ sb^?).
 by rewrite (rmw_in_sb WF); basic_solver.
 arewrite (sb^? ⨾ ⦗F ∩₁ Sc⦘ ⊆ ar^?).
-by unfold ar, imm_ppo.ar_int, imm_bob.bob, imm_bob.fwbob; mode_solver 21.
+by unfold ar, Ppo.ar_int, Bob.bob, Bob.fwbob; mode_solver 21.
 arewrite (⦗F ∩₁ Sc⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ar^?).
-by unfold ar, imm_ppo.ar_int, imm_bob.bob, imm_bob.fwbob; mode_solver 21.
+by unfold ar, Ppo.ar_int, Bob.bob, Bob.fwbob; mode_solver 21.
 relsf.
 Qed.
 
@@ -446,7 +454,7 @@ Proof using.
   arewrite (sb \ same_loc ⊆ sb).
   arewrite (sb ⊆ hb).
   arewrite (hb ⨾ hb ⨾ hb ⊆ hb).
-  { unfold imm_hb.hb. by rewrite !ct_ct. }
+  { unfold Hb.hb. by rewrite !ct_ct. }
   arewrite (hb ∪ hb ∪ hb ∩ same_loc ⊆ hb).
   rewrite co_in_eco, fr_in_eco.
   rewrite unionA, unionK.
@@ -464,4 +472,6 @@ Proof using.
   unfold psc_f. basic_solver 10.
 Qed.
 
-End IMM.
+End ImmDefs.
+
+End imm.

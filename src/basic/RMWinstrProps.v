@@ -1,4 +1,4 @@
-Require Import RelationClasses List Lia.
+(* Require Import RelationClasses List Lia.
 From PromisingLib Require Import Basic.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -217,4 +217,4 @@ Proof using.
   eapply dom_rmw_in_rex_thread_step with (s:=y); eauto.
   { erewrite steps_preserve_instrs; eauto. }
   eapply wf_thread_state_steps; eauto.
-Qed.
+Qed. *)

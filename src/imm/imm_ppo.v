@@ -9,58 +9,66 @@ Require Import Events.
 Require Import Execution.
 Require Import Execution_eco.
 Require Import imm_bob.
+Require Import imm_hb.
 
 Set Implicit Arguments.
 
-Section IMM_PPO.
+Module imm_ppo (Val : ValueSig) (Ev : Events Val).
+
+Module Import Hb := imm_hb Val Ev.
+Module Import Bob := Hb.Bob.
+Module Import Eco := Bob.Eco.
+Module Import Ex := Eco.Ex.
+
+Section ImmPpoDefs.
 
 Variable G : execution.
 
-Notation "'E'" := (acts_set G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
-Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
+Notation "'data'" := (Ex.data G).
+Notation "'addr'" := (Ex.addr G).
+Notation "'ctrl'" := (Ex.ctrl G).
+Notation "'rmw_dep'" := (Ex.rmw_dep G).
 
-Notation "'fr'" := (fr G).
-Notation "'eco'" := (eco G).
-Notation "'coe'" := (coe G).
-Notation "'coi'" := (coi G).
-Notation "'deps'" := (deps G).
-Notation "'rfi'" := (rfi G).
-Notation "'rfe'" := (rfe G).
-Notation "'detour'" := (detour G).
+Notation "'fr'" := (Ex.fr G).
+Notation "'eco'" := (Eco.eco G).
+Notation "'coe'" := (Ex.coe G).
+Notation "'coi'" := (Ex.coi G).
+Notation "'deps'" := (Ex.deps G).
+Notation "'rfi'" := (Ex.rfi G).
+Notation "'rfe'" := (Ex.rfe G).
+Notation "'detour'" := (Ex.detour G).
 
-Notation "'lab'" := (lab G).
-Notation "'loc'" := (loc lab).
-Notation "'val'" := (val lab).
-Notation "'mod'" := (mod lab).
-Notation "'same_loc'" := (same_loc lab).
+Notation "'lab'" := (Ex.lab G).
+Notation "'loc'" := (Ev.loc lab).
+Notation "'val'" := (Ev.val lab).
+Notation "'mod'" := (Ev.mod lab).
+Notation "'same_loc'" := (Ev.same_loc lab).
 
-Notation "'R'" := (fun a => is_true (is_r lab a)).
-Notation "'W'" := (fun a => is_true (is_w lab a)).
-Notation "'F'" := (fun a => is_true (is_f lab a)).
+Notation "'R'" := (fun a => is_true (Ev.is_r lab a)).
+Notation "'W'" := (fun a => is_true (Ev.is_w lab a)).
+Notation "'F'" := (fun a => is_true (Ev.is_f lab a)).
 Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
-Notation "'R_ex'" := (fun a => is_true (R_ex lab a)).
-Notation "'W_ex'" := (W_ex G).
-Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
+Notation "'R_ex'" := (fun a => is_true (Ev.R_ex lab a)).
+Notation "'W_ex'" := (Ex.W_ex G).
+Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (Ev.is_xacq lab a))).
 
-Notation "'Pln'" := (fun a => is_true (is_only_pln lab a)).
-Notation "'Rlx'" := (fun a => is_true (is_rlx lab a)).
-Notation "'Rel'" := (fun a => is_true (is_rel lab a)).
-Notation "'Acq'" := (fun a => is_true (is_acq lab a)).
-Notation "'Acqrel'" := (fun a => is_true (is_acqrel lab a)).
-Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
-Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
+Notation "'Pln'" := (fun a => is_true (Ev.is_only_pln lab a)).
+Notation "'Rlx'" := (fun a => is_true (Ev.is_rlx lab a)).
+Notation "'Rel'" := (fun a => is_true (Ev.is_rel lab a)).
+Notation "'Acq'" := (fun a => is_true (Ev.is_acq lab a)).
+Notation "'Acqrel'" := (fun a => is_true (Ev.is_acqrel lab a)).
+Notation "'Acq/Rel'" := (fun a => is_true (Ev.is_ra lab a)).
+Notation "'Sc'" := (fun a => is_true (Ev.is_sc lab a)).
 
-Notation "'fwbob'" := (fwbob G).
-Notation "'bob'" := (bob G).
+Notation "'fwbob'" := (Bob.fwbob G).
+Notation "'bob'" := (Bob.bob G).
 
 (******************************************************************************)
 (** ** Derived relations  *)
@@ -135,7 +143,7 @@ arewrite ((data ∪ ctrl ∪ addr ⨾ sb^? ∪ rfi ∪ rmw ⨾ sb^? ∪ ⦗R_ex�
 2: basic_solver 42.
 rewrite <- inclusion_ct_seq_eqv_r, <- inclusion_ct_seq_eqv_l.
 apply inclusion_t_t.
-unfold Execution.rfi.
+unfold Ex.rfi.
 rewrite (wf_rfE WF), (wf_dataE WF), (wf_rmw_depE WF) at 1.
 rewrite (wf_addrE WF), (wf_ctrlE WF), (wf_rmwE WF).
 rewrite wf_sbE at 1 2 3 4.
@@ -200,7 +208,7 @@ Qed.
 
 Lemma deps_rfi_in_ppo : ⦗R⦘ ⨾ (deps ∪ rfi)⁺ ⨾ ⦗W⦘ ⊆ ppo.
 Proof using.
-  unfold ppo, Execution.deps.
+  unfold ppo, Ex.deps.
   hahn_frame.
   apply inclusion_t_t; basic_solver 21.
 Qed.
@@ -238,7 +246,7 @@ Proof using.
   relsf.
   rewrite (dom_r (wf_rmw_depD WF)), !seqA.
   rewrite (crE sb) at 2; relsf; unionL.
-  { rewrite R_ex_in_R; type_solver. }
+  { rewrite Ev.R_ex_in_R; type_solver. }
   hahn_frame.
   sin_rewrite RMW_CTRL_FAIL.
   rewrite DEPS_RMW_FAIL.
@@ -287,4 +295,6 @@ by auto with hahn.
 + rewrite (wf_ppoD) at 1 2. type_solver.
 Qed.
 
-End IMM_PPO.
+End ImmPpoDefs.
+
+End imm_ppo.

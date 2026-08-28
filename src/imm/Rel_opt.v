@@ -13,11 +13,21 @@ Require Import imm.
 
 Set Implicit Arguments.
 
-Section Rel_opt.
+Module Rel_opt (Val : ValueSig) (Ev : Events Val).
+
+Module Import Imm := imm Val Ev.
+Module Import Ppo := Imm.Ppo.
+Module Import Hb := Ppo.Hb.
+Module Import Bob := Hb.Bob.
+Module Import Eco := Bob.Eco.
+Module Import Ex := Eco.Ex.
+Import Ev.
+
+Section RelOptDefs.
 
 Variable G : execution.
 
-Definition relax_release_labels (l: label) : label :=
+Definition relax_release_labels (l: Ev.label) : Ev.label :=
   match l with
   | Astore xm Orel x v => Astore xm Orlx x v
   | Astore xm Oacqrel x v => Astore xm Orlx x v
@@ -26,39 +36,39 @@ Definition relax_release_labels (l: label) : label :=
   end.
 
 Definition G' : execution :=
-  {|  acts_set   := (acts_set G);
-      threads_set := (threads_set G);
-      lab    := (fun a => relax_release_labels ((lab G) a));
-      rmw    := (rmw G);
-      data   := (data G);
-      addr   := (addr G);
-      ctrl   := (ctrl G);
-      rmw_dep := (rmw_dep G);
-      rf     := (rf G);
-      co     := (co G)
+  {|  Ex.acts_set   := (Ex.acts_set G);
+      Ex.threads_set := (Ex.threads_set G);
+      Ex.lab    := (fun a => relax_release_labels ((Ex.lab G) a));
+      Ex.rmw    := (Ex.rmw G);
+      Ex.data   := (Ex.data G);
+      Ex.addr   := (Ex.addr G);
+      Ex.ctrl   := (Ex.ctrl G);
+      Ex.rmw_dep := (Ex.rmw_dep G);
+      Ex.rf     := (Ex.rf G);
+      Ex.co     := (Ex.co G)
   |}.
 
-Notation "'E''" := (acts_set G').
-Notation "'lab''" := (lab G').
-Notation "'sb''" := (sb G').
-Notation "'rf''" := (rf G').
-Notation "'co''" := (co G').
-Notation "'rmw''" := (rmw G').
-Notation "'data''" := (data G').
-Notation "'addr''" := (addr G').
-Notation "'ctrl''" := (ctrl G').
-Notation "'deps''" := (deps G').
-Notation "'rmw_dep''" := (rmw_dep G').
+Notation "'E''" := (Ex.acts_set G').
+Notation "'lab''" := (Ex.lab G').
+Notation "'sb''" := (Ex.sb G').
+Notation "'rf''" := (Ex.rf G').
+Notation "'co''" := (Ex.co G').
+Notation "'rmw''" := (Ex.rmw G').
+Notation "'data''" := (Ex.data G').
+Notation "'addr''" := (Ex.addr G').
+Notation "'ctrl''" := (Ex.ctrl G').
+Notation "'deps''" := (Ex.deps G').
+Notation "'rmw_dep''" := (Ex.rmw_dep G').
 
-Notation "'fre''" := (fre G').
-Notation "'rfe''" := (rfe G').
-Notation "'coe''" := (coe G').
-Notation "'rfi''" := (rfi G').
-Notation "'fri''" := (fri G').
-Notation "'coi''" := (coi G').
-Notation "'fr''" := (fr G').
-Notation "'eco''" := (eco G').
-Notation "'detour''" := (detour G').
+Notation "'fre''" := (Ex.fre G').
+Notation "'rfe''" := (Ex.rfe G').
+Notation "'coe''" := (Ex.coe G').
+Notation "'rfi''" := (Ex.rfi G').
+Notation "'fri''" := (Ex.fri G').
+Notation "'coi''" := (Ex.coi G').
+Notation "'fr''" := (Ex.fr G').
+Notation "'eco''" := (Eco.eco G').
+Notation "'detour''" := (Ex.detour G').
 
 Notation "'R''" := (fun a => is_true (is_r lab' a)).
 Notation "'W''" := (fun a => is_true (is_w lab' a)).
@@ -67,7 +77,7 @@ Notation "'R_ex''" := (fun a => is_true (R_ex lab' a)).
 Notation "'RW''" := (R' ∪₁ W').
 Notation "'FR''" := (F' ∪₁ R').
 Notation "'FW''" := (F' ∪₁ W').
-Notation "'W_ex''" := (W_ex G').
+Notation "'W_ex''" := (Ex.W_ex G').
 Notation "'W_ex_acq''" := (W_ex' ∩₁ (fun a => is_true (is_xacq lab' a))).
 
 Notation "'loc''" := (loc lab').
@@ -75,16 +85,16 @@ Notation "'val''" := (val lab').
 Notation "'mod''" := (mod lab').
 Notation "'same_loc''" := (same_loc lab').
 
-Notation "'sw''" := (sw G').
-Notation "'release''" := (release G').
-Notation "'rs''" := (rs G').
-Notation "'hb''" := (hb G').
-Notation "'sprop''" := (sprop G').
-Notation "'ppo''" := (ppo G').
-Notation "'psc''" := (psc G').
-Notation "'psc_f''" := (psc_f G').
-Notation "'psc_base''" := (psc_base G').
-Notation "'bob''" := (bob G').
+Notation "'sw''" := (Hb.sw G').
+Notation "'release''" := (Hb.release G').
+Notation "'rs''" := (Hb.rs G').
+Notation "'hb''" := (Hb.hb G').
+Notation "'sprop''" := (Hb.sprop G').
+Notation "'ppo''" := (Ppo.ppo G').
+Notation "'psc''" := (Imm.psc G').
+Notation "'psc_f''" := (Imm.psc_f G').
+Notation "'psc_base''" := (Imm.psc_base G').
+Notation "'bob''" := (Bob.bob G').
 
 Notation "'Pln''" := (fun a => is_true (is_only_pln lab' a)).
 Notation "'Rlx''" := (fun a => is_true (is_rlx lab' a)).
@@ -96,30 +106,30 @@ Notation "'Sc''" := (fun a => is_true (is_sc lab' a)).
 
 Implicit Type WFp : Wf G'.
 Implicit Type COMPp : complete G'.
-Implicit Type COHp : coherence G'.
-Implicit Type SC_PER_LOCp : sc_per_loc G'.
+Implicit Type COHp : Hb.coherence G'.
+Implicit Type SC_PER_LOCp : Eco.sc_per_loc G'.
 
-Notation "'E'" := (acts_set G).
-Notation "'lab'" := (lab G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
-Notation "'deps'" := (deps G).
-Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'lab'" := (Ex.lab G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
+Notation "'data'" := (Ex.data G).
+Notation "'addr'" := (Ex.addr G).
+Notation "'ctrl'" := (Ex.ctrl G).
+Notation "'deps'" := (Ex.deps G).
+Notation "'rmw_dep'" := (Ex.rmw_dep G).
 
-Notation "'fre'" := (fre G).
-Notation "'rfe'" := (rfe G).
-Notation "'coe'" := (coe G).
-Notation "'rfi'" := (rfi G).
-Notation "'fri'" := (fri G).
-Notation "'coi'" := (coi G).
-Notation "'fr'" := (fr G).
-Notation "'eco'" := (eco G).
-Notation "'detour'" := (detour G).
+Notation "'fre'" := (Ex.fre G).
+Notation "'rfe'" := (Ex.rfe G).
+Notation "'coe'" := (Ex.coe G).
+Notation "'rfi'" := (Ex.rfi G).
+Notation "'fri'" := (Ex.fri G).
+Notation "'coi'" := (Ex.coi G).
+Notation "'fr'" := (Ex.fr G).
+Notation "'eco'" := (Eco.eco G).
+Notation "'detour'" := (Ex.detour G).
 
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
@@ -128,7 +138,7 @@ Notation "'R_ex'" := (fun a => is_true (R_ex lab a)).
 Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
-Notation "'W_ex'" := (W_ex G).
+Notation "'W_ex'" := (Ex.W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Notation "'loc'" := (loc lab).
@@ -136,16 +146,16 @@ Notation "'val'" := (val lab).
 Notation "'mod'" := (mod lab).
 Notation "'same_loc'" := (same_loc lab).
 
-Notation "'sw'" := (sw G).
-Notation "'release'" := (release G).
-Notation "'rs'" := (rs G).
-Notation "'hb'" := (hb G).
-Notation "'sprop'" := (sprop G).
-Notation "'ppo'" := (ppo G).
-Notation "'psc'" := (psc G).
-Notation "'psc_f'" := (psc_f G).
-Notation "'psc_base'" := (psc_base G).
-Notation "'bob'" := (bob G).
+Notation "'sw'" := (Hb.sw G).
+Notation "'release'" := (Hb.release G).
+Notation "'rs'" := (Hb.rs G).
+Notation "'hb'" := (Hb.hb G).
+Notation "'sprop'" := (Hb.sprop G).
+Notation "'ppo'" := (Ppo.ppo G).
+Notation "'psc'" := (Imm.psc G).
+Notation "'psc_f'" := (Imm.psc_f G).
+Notation "'psc_base'" := (Imm.psc_base G).
+Notation "'bob'" := (Bob.bob G).
 
 Notation "'Pln'" := (fun a => is_true (is_only_pln lab a)).
 Notation "'Rlx'" := (fun a => is_true (is_rlx lab a)).
@@ -157,8 +167,8 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Implicit Type WF : Wf G.
 Implicit Type COMP : complete G.
-Implicit Type COH : coherence G.
-Implicit Type SC_PER_LOC : sc_per_loc G.
+Implicit Type COH : Hb.coherence G.
+Implicit Type SC_PER_LOC : Eco.sc_per_loc G.
 
 Hypothesis SC_F : Sc ⊆₁ F∩₁Sc.
 Hypothesis W_REL : sb ⨾ ⦗W∩₁Rel⦘ ⊆ sb^? ⨾ ⦗F∩₁Rel⦘ ⨾ sb ∪ rmw.
@@ -175,7 +185,7 @@ Qed.
 
 Lemma Rel_eq : Rel' ≡₁  Rel \₁ W∩₁Rel.
 Proof using. 
-unfold G', relax_release_labels, is_rel, is_w, Events.mod; ins.
+unfold G', relax_release_labels, is_rel, is_w, Ev.mod; ins.
 unfolder; splits; ins; desf.
 all: try (split; eauto; intro; desf; eauto).
 all: tauto.
@@ -188,7 +198,7 @@ Proof using SC_F W_REL. unfold G', relax_release_labels; type_solver 22. Qed.
 Lemma W_ex_acq_eq : W_ex_acq' ≡₁ W_ex_acq.
 Proof using SC_F W_REL.
   unfold G', relax_release_labels.
-  unfold Execution.W_ex; mode_unfolder; ins; unfold xmod; basic_solver 22.
+  unfold Ex.W_ex; mode_unfolder; ins; unfold xmod; basic_solver 22.
 Qed.
 Lemma R_ex_eq : R_ex' ≡₁ R_ex.
 Proof using SC_F W_REL. unfold G', relax_release_labels; type_solver. Qed.
@@ -198,7 +208,7 @@ Lemma R_Acq_eq: R ∩₁ Acq' ≡₁ R ∩₁ Acq.
 Proof using.
   unfold G', relax_release_labels; ins.
   unfolder; ins; split; ins; desf; splits; eauto.
-  all: type_unfolder; mode_unfolder; unfold Events.mod in *.
+  all: type_unfolder; mode_unfolder; unfold Ev.mod in *.
   all: by destruct (lab x); eauto; exfalso.
 Qed.
 
@@ -206,13 +216,13 @@ Lemma FR_Acq_eq: FR ∩₁ Acq' ≡₁ FR ∩₁ Acq.
 Proof using.
   unfold G', relax_release_labels; ins.
   all: unfolder; ins; split; ins; desf; splits; eauto.
-  all: type_unfolder; mode_unfolder; unfold Events.mod in *.
+  all: type_unfolder; mode_unfolder; unfold Ev.mod in *.
   all: by destruct (lab x); eauto; exfalso.
 Qed.
 
 Lemma F_AcqRel_eq : F ∩₁ Acq/Rel' ≡₁  F ∩₁ Acq/Rel.
 Proof using.
-  unfold G', relax_release_labels, is_f, is_ra, is_rel, is_acq, Events.mod; ins.
+  unfold G', relax_release_labels, is_f, is_ra, is_rel, is_acq, Ev.mod; ins.
   unfolder; ins; split; ins; desf; splits; eauto.
 Qed.
 
@@ -233,7 +243,7 @@ Qed.
 
 Lemma F_Sc_eq : F'∩₁Sc' ≡₁  F∩₁Sc.
 Proof using.
-  unfold G', relax_release_labels, is_f, is_sc, Events.mod; ins.
+  unfold G', relax_release_labels, is_f, is_sc, Ev.mod; ins.
   unfolder; ins; split; ins; desf; splits; eauto.
 Qed.
 
@@ -252,7 +262,7 @@ Proof using SC_F W_REL.
 Qed.
 
 Lemma same_loc_eq : same_loc' ≡ same_loc.
-Proof using. unfold G', relax_release_labels, Events.same_loc, Events.loc; ins.
+Proof using. unfold G', relax_release_labels, Ev.same_loc, Ev.loc; ins.
 type_solver 22.
 Qed.
 Lemma E_eq : E' ≡₁ E.
@@ -284,7 +294,7 @@ Proof using. unfold G', relax_release_labels; type_solver 22. Qed.
 
 Lemma bob_eq : bob ⊆ bob'⁺ ∪ rmw' ∪ ⦗W ∩₁ Rel⦘ ⨾ sb' ∩ same_loc' ⨾ ⦗W'⦘.
 Proof using SC_F W_REL.
-unfold imm_bob.bob, imm_bob.fwbob.
+unfold Bob.bob, Bob.fwbob.
 rewrite F_eq, R_eq, W_eq, Rel_eq, sb_eq, F_AcqRel_eq, R_Acq_eq, same_loc_eq.
 unionL.
 - rewrite W_REL; unionL.
@@ -303,24 +313,24 @@ Qed.
 
 Lemma ppo_eq: ppo' ≡ ppo.
 Proof using SC_F W_REL.
-unfold imm_ppo.ppo, Execution.rfi.
+unfold Ppo.ppo, Ex.rfi.
 by rewrite W_eq, R_eq, sb_eq, data_eq, addr_eq, ctrl_eq, rf_eq, R_ex_eq.
 Qed.
 
 Lemma detour_eq: detour' ≡ detour.
 Proof using.
-unfold Execution.detour; ie_unfolder.
+unfold Ex.detour; ie_unfolder.
 by rewrite sb_eq, rf_eq, co_eq.
 Qed.
 
 Lemma rs_eq : rs' ≡ rs.
 Proof using SC_F W_REL.
-by unfold imm_hb.rs; rewrite W_eq, same_loc_eq, sb_eq, rf_eq, rmw_eq.
+by unfold Hb.rs; rewrite W_eq, same_loc_eq, sb_eq, rf_eq, rmw_eq.
 Qed.
 
 Lemma rmw_release_eq WF WFp: rmw ⨾ release ⊆ rmw' ⨾ rs'.
 Proof using SC_F W_REL.
-unfold imm_hb.release.
+unfold Hb.release.
 rewrite (dom_r (wf_rmwD WF)), !seqA.
 arewrite_id (⦗W⦘ ⨾ ⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb)^?).
 by type_solver.
@@ -335,7 +345,7 @@ Proof using SC_F W_REL.
 rewrite (dom_l (wf_releaseD WF)).
 rewrite (dom_l (wf_releaseD WFp)). 
 
-unfold imm_hb.release; rewrite sb_eq, rs_eq, F_eq, Rel_eq, W_eq.
+unfold Hb.release; rewrite sb_eq, rs_eq, F_eq, Rel_eq, W_eq.
 arewrite (⦗FW ∩₁ Rel⦘ ⨾ ⦗Rel⦘ ≡ ⦗F ∩₁ Rel⦘ ∪ ⦗W ∩₁ Rel⦘) by basic_solver 12.
 
 arewrite (⦗FW ∩₁ (Rel \₁ W ∩₁ Rel)⦘ ⨾ ⦗Rel \₁ W ∩₁ Rel⦘ ≡ ⦗F ∩₁ Rel⦘).
@@ -353,7 +363,7 @@ Qed.
 
 Lemma F_release_eq WF: ⦗F⦘ ⨾ release ⊆ release'.
 Proof using SC_F W_REL.
-unfold imm_hb.release; rewrite sb_eq, rs_eq, F_eq, Rel_eq.
+unfold Hb.release; rewrite sb_eq, rs_eq, F_eq, Rel_eq.
 rewrite (dom_l (wf_rsD WF)).
 case_refl _; [type_solver 12|].
 arewrite (⦗F⦘ ⨾ ⦗Rel⦘ ⊆ ⦗Rel \₁ W ∩₁ Rel⦘).
@@ -376,14 +386,14 @@ Qed.
 
 Lemma F_sw_eq WF: ⦗F⦘ ⨾ sw ⊆ sw'.
 Proof using SC_F W_REL.
-unfold imm_hb.sw.
+unfold Hb.sw.
 sin_rewrite (F_release_eq WF).
 by sin_rewrite (sw_eq_helper WF).
 Qed.
 
 Lemma rmw_sw_eq WF WFp: rmw ⨾ sw ⊆ rmw' ⨾ rs' ⨾  (rfi' ∪ (sb' ∩ same_loc')^? ⨾ rfe') ⨾ (sb' ⨾ ⦗F'⦘)^? ⨾ ⦗Acq'⦘.
 Proof using SC_F W_REL.
-unfold imm_hb.sw.
+unfold Hb.sw.
 sin_rewrite !(rmw_release_eq WF WFp).
 sin_rewrite (sw_eq_helper WF).
 by relsf; rewrite !seqA.
@@ -391,7 +401,7 @@ Qed.
 
 Lemma non_rmw_sw_eq WF WFp: (sb \ rmw) ⨾ sw ⊆ sb'^? ⨾ sw'.
 Proof using SC_F W_REL.
-unfold imm_hb.sw.
+unfold Hb.sw.
 sin_rewrite !(non_rmw_release_eq WF WFp).
 sin_rewrite (sw_eq_helper WF).
 by relsf; rewrite !seqA.
@@ -400,15 +410,15 @@ Qed.
 Lemma hb_eq1 WF WFp: 
   hb ⊆ hb' ∪ (⦗W⦘ ∪ rmw) ⨾ sw ⨾ hb'^?.
 Proof using SC_F W_REL.
-unfold imm_hb.hb at 1.
+unfold Hb.hb at 1.
 apply inclusion_t_ind_left.
 unionL.
 - rewrite <- sb_eq.
-unfold imm_hb.hb.
+unfold Hb.hb.
 rewrite <- ct_step.
 basic_solver.
 - rewrite (dom_l (wf_swD WF)) at 1.
-unfold imm_hb.hb.
+unfold Hb.hb.
 rewrite <- ct_step.
 generalize (F_sw_eq WF).
 basic_solver 21.
@@ -447,14 +457,14 @@ Lemma hb_eq WF WFp:
 Proof using.
 rewrite (hb_alt2 WF), (F_sw_eq WF), (non_rmw_sw_eq WF WFp), (rmw_sw_eq WF WFp).
 arewrite (sb ∪ sw' ∪ sb'^? ⨾ sw' ⊆ hb').
-by rewrite <- sb_eq, sb_in_hb, sw_in_hb; unfold imm_hb.hb; relsf.
+by rewrite <- sb_eq, sb_in_hb, sw_in_hb; unfold Hb.hb; relsf.
 generalize (@hb_trans G'); ins; relsf; basic_solver 42.
 Qed.
 *)
 Lemma psc_eq WF WFp SC_PER_LOC COMP COHp COMPp: 
   psc ⊆ psc'.
 Proof using SC_F W_REL.
-  unfold imm.psc.
+  unfold Imm.psc.
   rewrite (hb_eq1 WF WFp) at 1 2.
 
   arewrite (⦗F ∩₁ Sc⦘ ⨾ (hb' ∪ (⦗W⦘ ∪ rmw) ⨾ sw ⨾ hb'^?) ⊆ ⦗F ∩₁ Sc⦘ ⨾ hb').
@@ -479,7 +489,7 @@ basic_solver 12.
 
   arewrite ((sb ⨾ ⦗F ∩₁ Acq⦘)^? ⨾ hb'^? ⊆ hb'^?).
   rewrite <- sb_eq.
-  unfold imm_hb.hb.
+  unfold Hb.hb.
   arewrite (sb' ⊆ (sb' ∪ sw')) at 1; rels.
 
   arewrite_id ⦗F ∩₁ Acq⦘.
@@ -497,13 +507,13 @@ Qed.
 Lemma psc_f_eq WF WFp SC_PER_LOC COMP COHp COMPp: 
   psc_f ⊆ psc_f'.
 Proof using SC_F W_REL.
-  unfold imm.psc_f at 1.
+  unfold Imm.psc_f at 1.
   rewrite crE.
   rewrite !seq_union_l, !seq_union_r, seq_id_l, !seqA.
   unionL.
   2: { assert (psc' ⊆ psc_f') as HH.
        2: { rewrite <- HH. by apply psc_eq. }
-       unfold imm.psc_f, imm.psc.
+       unfold Imm.psc_f, Imm.psc.
        assert (eco' ⨾ hb' ⊆ (eco' ⨾ hb')^?) as HH.
        2: by sin_rewrite HH.
        eauto with hahn. }
@@ -512,7 +522,7 @@ Proof using SC_F W_REL.
 
   arewrite (⦗F ∩₁ Sc⦘ ⨾ (hb' ∪ (⦗W⦘ ∪ rmw) ⨾ sw ⨾ hb'^?) ⊆ ⦗F ∩₁ Sc⦘ ⨾ hb').
   { rewrite (dom_l (wf_rmwD WFp)). type_solver 12. }
-  unfold imm.psc_f.
+  unfold Imm.psc_f.
   rewrite F_Sc_eq. basic_solver 10.
 Qed.
 
@@ -521,21 +531,24 @@ Proof using SC_F W_REL.
 intros WF.
 destruct WF.
 eexists; rewrite <- ?sb_eq, <- ?W_eq, <- ?R_eq, <- ?same_loc_eq, <- ?R_ex_eq; try done.
-- clear -wf_rfv.
-  unfold G', relax_release_labels, Events.val, funeq in *; intros a b H.
-  apply wf_rfv in H; destruct a,b; ins; desf.
+- match goal with H : funeq _ _ |- _ => rename H into RFV end.
+  clear -RFV.
+  unfold G', relax_release_labels, Ev.val, funeq in *; intros a b H.
+  apply RFV in H; destruct a,b; ins; desf.
 - ins.
   rewrite <- W_eq, <- E_eq.
   arewrite ((fun x : actid => loc x = ol) ⊆₁ (fun x : actid => loc' x = ol)).
   unfolder; ins.
-  unfold relax_release_labels, Events.loc in *; ins; destruct x; desf.
+  unfold relax_release_labels, Ev.loc in *; ins; destruct x; desf.
   done.
-- clear -wf_init.
-  intros l B; specialize (wf_init l); desc.
-  apply wf_init; eexists; splits; eauto.
-  unfold G', relax_release_labels, Events.loc in *; ins; destruct b; ins; desf.
-- clear -wf_init_lab.
-  intros l; specialize (wf_init_lab l).
+- match goal with H : forall l, (exists _, _ /\ _) -> _ |- _ => rename H into INIT end.
+  clear -INIT.
+  intros l B; specialize (INIT l); desc.
+  apply INIT; eexists; splits; eauto.
+  unfold G', relax_release_labels, Ev.loc in *; ins; destruct b; ins; desf.
+- match goal with H : forall l, _ = _ |- _ => rename H into INITLAB end.
+  clear -INITLAB.
+  intros l; specialize (INITLAB l).
   unfold G', relax_release_labels in *; ins; desf.
 Qed.
 
@@ -654,7 +667,7 @@ rewrite F_Sc_eq; type_solver 21.
 rewrite R_eq; type_solver 21.
 - by rewrite detour_in_sb.
 - by basic_solver.
-- unfold Execution.rfi; basic_solver.
+- unfold Ex.rfi; basic_solver.
 - by rewrite bob_in_sb.
 }
 
@@ -675,7 +688,7 @@ relsf; unionL.
 rewrite !seqA.
 arewrite (sb' ⨾ sb' ⨾ ⦗W'⦘ ⊆ sb').
 by generalize (@sb_trans G'); basic_solver.
-unfold imm_bob.bob, imm_bob.fwbob.
+unfold Bob.bob, Bob.fwbob.
 
 case_refl _.
 unfolder; ins; eapply t_step; basic_solver 21.
@@ -717,5 +730,7 @@ Proof using SC_F W_REL.
   arewrite (psc_f' ⊆ psc_f' ∪ psc_base').
   done.
 Qed.
+
+End RelOptDefs.
 
 End Rel_opt.

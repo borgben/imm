@@ -4,13 +4,20 @@ From imm Require Import Execution Events.
 Require Import Lia.
 From hahnExt Require Import HahnExt.
 
-Definition fin_threads G := set_finite (threads_set G).
+Module FinThreads
+    (Val : ValueSig)
+    (Ev : Events Val).
 
-Definition threads_bound (G: execution) (b: thread_id) :=
-  forall e (Ge: acts_set G e), BinPos.Pos.lt (tid e) b.
+Module Import Ex := Execution Val Ev.
+
+Definition fin_threads (G : execution) := set_finite (Ex.threads_set G).
+
+Definition threads_bound (G: execution) (b: Ev.thread_id) :=
+  forall e (Ge: Ex.acts_set G e), BinPos.Pos.lt (Ev.tid e) b.
 
 Lemma fin_threads_bound G
-      (ACTS : forall e : actid, acts_set G e -> threads_set G (tid e))
+      (ACTS : forall e : Ev.actid,
+          Ex.acts_set G e -> Ex.threads_set G (Ev.tid e))
       (FIN : fin_threads G) :
   exists b, threads_bound G b.
 Proof using.
@@ -49,27 +56,29 @@ Proof using.
 Qed.
 
 Lemma has_finite_antichains_sb G
-      (ACTS : forall e : actid, acts_set G e -> threads_set G (tid e))
+      (ACTS : forall e : Ev.actid,
+          Ex.acts_set G e -> Ex.threads_set G (Ev.tid e))
       (B : fin_threads G):
-  has_finite_antichains (acts_set G \₁ is_init) (⦗set_compl is_init⦘ ⨾ sb G).
+  has_finite_antichains (Ex.acts_set G \₁ Ev.is_init)
+                        (⦗set_compl Ev.is_init⦘ ⨾ @Ex.sb G).
 Proof using.
   edestruct fin_threads_bound as [b HH]; eauto.
   set (nb := BinPos.Pos.to_nat b).
   red. exists nb. red. ins.  
-  cut (exists a b, a <> b /\ In a l /\ In b l /\ tid a = tid b).
+  cut (exists a b, a <> b /\ In a l /\ In b l /\ Ev.tid a = Ev.tid b).
   { intro X; desc.
     destruct (INCL _ X0); destruct (INCL _ X1); desc.
-    eapply (same_thread G) in X2; unfolder in X2; desf.
+    eapply (@Ex.same_thread G) in X2; unfolder in X2; desf.
     1: exists a, b0. 2: exists b0, a. 
     all: splits; eauto; basic_solver. }
-  assert (M: incl (map tid l) (map BinPos.Pos.of_nat (List.seq 0 nb))).
+  assert (M: incl (map Ev.tid l) (map BinPos.Pos.of_nat (List.seq 0 nb))).
   { red. intros n IN. rewrite in_map_iff in *. destruct IN as [x [TT IN]]; subst.
-    exists (BinPos.Pos.to_nat (tid x)). split.
+    exists (BinPos.Pos.to_nat (Ev.tid x)). split.
     { apply Pnat.Pos2Nat.id. }
     apply in_seq0_iff.
     subst nb. apply Pnat.Pos2Nat.inj_lt.
     apply HH. now apply INCL. }
-  destruct (classic (NoDup (map tid l))).
+  destruct (classic (NoDup (map Ev.tid l))).
   { eapply NoDup_incl_length in M; ins.
     rewrite !length_map, length_seq in *. lia. }
   apply dupE in H; desf.
@@ -82,23 +91,26 @@ Proof using.
 Qed.
 
 Lemma thread_bounds_fsupp_ninit_ct G r
-      (ACTS : forall e : actid, acts_set G e -> threads_set G (tid e))
+      (ACTS : forall e : Ev.actid,
+          Ex.acts_set G e -> Ex.threads_set G (Ev.tid e))
       (TB : fin_threads G)
-      (SB_R: sb G ⊆ r)
+      (SB_R: @Ex.sb G ⊆ r)
       (AC_R: acyclic r)
-      (R_NI: domb r (set_compl is_init))
-      (E_R: doma r (acts_set G))
-      (FS_R: fsupp (⦗set_compl is_init⦘ ⨾ r)):
-  fsupp (⦗set_compl is_init⦘ ⨾ r^+). 
+      (R_NI: domb r (set_compl Ev.is_init))
+      (E_R: doma r (Ex.acts_set G))
+      (FS_R: fsupp (⦗set_compl Ev.is_init⦘ ⨾ r)):
+  fsupp (⦗set_compl Ev.is_init⦘ ⨾ r^+). 
 Proof using.
   eapply fsupp_mori.
   { red. rewrite clos_trans_domb_l; auto. 
     eapply clos_trans_mori. rewrite <- seqA. apply inclusion_seq_eqv_r. }
-  eapply fsupp_ct with (s := acts_set G \₁ is_init); auto.
+  eapply fsupp_ct with (s := Ex.acts_set G \₁ Ev.is_init); auto.
   { eapply acyclic_mori; eauto. red. basic_solver. }
   { erewrite doma_rewrite with (r := r); eauto. basic_solver. } 
   eapply has_finite_antichains_mori; [reflexivity| ..]; eauto. 
   2: { eapply has_finite_antichains_sb; eauto. }
   basic_solver.  
 Qed.  
+
+End FinThreads.
   

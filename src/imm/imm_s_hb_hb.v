@@ -12,72 +12,80 @@ Require Import imm_s_hb.
 
 Set Implicit Arguments.
 
-Section S_HB_HB.
+Module imm_s_hb_hb (Val : ValueSig) (Ev : Events Val).
+
+Module Import SHb := imm_s_hb Val Ev.
+Module Import Hb := SHb.Hb.
+Module Import Bob := Hb.Bob.
+Module Import Eco := Bob.Eco.
+Module Import Ex := Eco.Ex.
+
+Section SHbHbDefs.
 
 Variable G : execution.
 
-Notation "'E'" := (acts_set G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
-Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
+Notation "'data'" := (Ex.data G).
+Notation "'addr'" := (Ex.addr G).
+Notation "'ctrl'" := (Ex.ctrl G).
+Notation "'rmw_dep'" := (Ex.rmw_dep G).
 
-Notation "'fr'" := (fr G).
-Notation "'eco'" := (eco G).
-Notation "'coe'" := (coe G).
-Notation "'coi'" := (coi G).
-Notation "'deps'" := (deps G).
-Notation "'rfi'" := (rfi G).
-Notation "'rfe'" := (rfe G).
+Notation "'fr'" := (Ex.fr G).
+Notation "'eco'" := (Eco.eco G).
+Notation "'coe'" := (Ex.coe G).
+Notation "'coi'" := (Ex.coi G).
+Notation "'deps'" := (Ex.deps G).
+Notation "'rfi'" := (Ex.rfi G).
+Notation "'rfe'" := (Ex.rfe G).
 
-Notation "'detour'" := (detour G).
+Notation "'detour'" := (Ex.detour G).
 
-Notation "'rs'" := (imm_hb.rs G).
-Notation "'release'" := (imm_hb.release G).
-Notation "'sw'" := (imm_hb.sw G).
-Notation "'hb'" := (imm_hb.hb G).
-
-
-Notation "'s_rs'" := (imm_s_hb.rs G).
-Notation "'s_release'" := (imm_s_hb.release G).
-Notation "'s_sw'" := (imm_s_hb.sw G).
-Notation "'s_hb'" := (imm_s_hb.hb G).
+Notation "'rs'" := (Hb.rs G).
+Notation "'release'" := (Hb.release G).
+Notation "'sw'" := (Hb.sw G).
+Notation "'hb'" := (Hb.hb G).
 
 
-Notation "'lab'" := (lab G).
-Notation "'loc'" := (loc lab).
-Notation "'val'" := (val lab).
-Notation "'mod'" := (mod lab).
-Notation "'same_loc'" := (same_loc lab).
+Notation "'s_rs'" := (SHb.rs G).
+Notation "'s_release'" := (SHb.release G).
+Notation "'s_sw'" := (SHb.sw G).
+Notation "'s_hb'" := (SHb.hb G).
 
-Notation "'R'" := (fun a => is_true (is_r lab a)).
-Notation "'W'" := (fun a => is_true (is_w lab a)).
-Notation "'F'" := (fun a => is_true (is_f lab a)).
+
+Notation "'lab'" := (Ex.lab G).
+Notation "'loc'" := (Ev.loc lab).
+Notation "'val'" := (Ev.val lab).
+Notation "'mod'" := (Ev.mod lab).
+Notation "'same_loc'" := (Ev.same_loc lab).
+
+Notation "'R'" := (fun a => is_true (Ev.is_r lab a)).
+Notation "'W'" := (fun a => is_true (Ev.is_w lab a)).
+Notation "'F'" := (fun a => is_true (Ev.is_f lab a)).
 Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
-Notation "'R_ex'" := (R_ex G).
-Notation "'W_ex'" := (W_ex G).
-Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
+Notation "'R_ex'" := (fun a => is_true (Ev.R_ex lab a)).
+Notation "'W_ex'" := (Ex.W_ex G).
+Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (Ev.is_xacq lab a))).
 
-Notation "'Pln'" := (fun a => is_true (is_only_pln lab a)).
-Notation "'Rlx'" := (fun a => is_true (is_rlx lab a)).
-Notation "'Rel'" := (fun a => is_true (is_rel lab a)).
-Notation "'Acq'" := (fun a => is_true (is_acq lab a)).
-Notation "'Acqrel'" := (fun a => is_true (is_acqrel lab a)).
-Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
-Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
+Notation "'Pln'" := (fun a => is_true (Ev.is_only_pln lab a)).
+Notation "'Rlx'" := (fun a => is_true (Ev.is_rlx lab a)).
+Notation "'Rel'" := (fun a => is_true (Ev.is_rel lab a)).
+Notation "'Acq'" := (fun a => is_true (Ev.is_acq lab a)).
+Notation "'Acqrel'" := (fun a => is_true (Ev.is_acqrel lab a)).
+Notation "'Acq/Rel'" := (fun a => is_true (Ev.is_ra lab a)).
+Notation "'Sc'" := (fun a => is_true (Ev.is_sc lab a)).
 
 (******************************************************************************)
 (** relations are contained in the corresponding ones **  *)
 (******************************************************************************)
 Lemma s_rs_in_rs : s_rs ⊆ rs.
 Proof using.
-unfold imm_s_hb.rs, imm_hb.rs.
+unfold SHb.rs, Hb.rs.
 hahn_frame.
 rewrite rtE at 1; relsf.
 apply inclusion_union_l.
@@ -94,13 +102,13 @@ Qed.
 
 Lemma s_release_in_release : s_release ⊆ release.
 Proof using.
-unfold imm_s_hb.release, imm_hb.release.
+unfold SHb.release, Hb.release.
 by rewrite s_rs_in_rs.
 Qed.
 
 Lemma s_sw_in_sw : s_sw ⊆ sw.
 Proof using.
-unfold imm_s_hb.sw, imm_hb.sw.
+unfold SHb.sw, Hb.sw.
 rewrite s_release_in_release.
 rewrite (rfi_union_rfe).
 basic_solver 21.
@@ -108,7 +116,7 @@ Qed.
 
 Lemma s_hb_in_hb : s_hb ⊆ hb.
 Proof using.
-unfold imm_s_hb.hb, imm_hb.hb.
+unfold SHb.hb, Hb.hb.
 by rewrite s_sw_in_sw.
 Qed.
 
@@ -117,15 +125,17 @@ Qed.
 (******************************************************************************)
 
 Lemma coherence_implies_s_coherence (WF: Wf G) (COMP: complete G) :
-  imm_hb.coherence G -> imm_s_hb.coherence G.
+  Hb.coherence G -> SHb.coherence G.
 Proof using.
-unfold imm_s_hb.coherence.
+unfold SHb.coherence.
 unfolder; ins; desf.
-eapply imm_hb.hb_irr; eauto.
+eapply Hb.hb_irr; eauto.
 eapply s_hb_in_hb; edone.
-unfold imm_hb.coherence in *; unfolder in *.
+unfold Hb.coherence in *; unfolder in *.
 eapply H; eexists; split; eauto.
 eapply s_hb_in_hb; edone.
 Qed.
 
-End S_HB_HB.
+End SHbHbDefs.
+
+End imm_s_hb_hb.

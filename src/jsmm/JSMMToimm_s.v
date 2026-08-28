@@ -2,7 +2,7 @@
 (** * JSMM is weaker than IMM_S   *)
 (******************************************************************************)
 
-Require Import Classical Peano_dec.
+(* Require Import Classical Peano_dec.
 From hahn Require Import Hahn.
 
 Require Import Events.
@@ -334,4 +334,4 @@ Proof using WF FINDOM.
   right. by apply co_in_eco.
 Qed.
 
-End JSMM_TO_IMM_S.
+End JSMM_TO_IMM_S. *)

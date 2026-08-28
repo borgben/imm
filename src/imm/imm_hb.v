@@ -8,55 +8,64 @@ From hahn Require Import Hahn.
 Require Import Events.
 Require Import Execution.
 Require Import Execution_eco.
+Require Import imm_bob.
 
 Set Implicit Arguments.
 
-Section IMM_hb.
+Module imm_hb
+    (Val : ValueSig)
+    (Ev : Events Val).
+
+Module Import Bob := imm_bob Val Ev.
+Module Import Eco := Bob.Eco.
+Module Import Ex := Eco.Ex.
+
+Section ImmHbDefs.
 
 Variable G : execution.
 
-Notation "'E'" := (acts_set G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
+Notation "'data'" := (Ex.data G).
+Notation "'addr'" := (Ex.addr G).
+Notation "'ctrl'" := (Ex.ctrl G).
 
-Notation "'fr'" := (fr G).
-Notation "'eco'" := (eco G).
-Notation "'coe'" := (coe G).
-Notation "'coi'" := (coi G).
-Notation "'deps'" := (deps G).
-Notation "'rfi'" := (rfi G).
-Notation "'rfe'" := (rfe G).
-Notation "'detour'" := (detour G).
+Notation "'fr'" := (Ex.fr G).
+Notation "'eco'" := (Eco.eco G).
+Notation "'coe'" := (Ex.coe G).
+Notation "'coi'" := (Ex.coi G).
+Notation "'deps'" := (Ex.deps G).
+Notation "'rfi'" := (Ex.rfi G).
+Notation "'rfe'" := (Ex.rfe G).
+Notation "'detour'" := (Ex.detour G).
 
-Notation "'lab'" := (lab G).
-Notation "'loc'" := (loc lab).
-Notation "'val'" := (val lab).
-Notation "'mod'" := (mod lab).
-Notation "'same_loc'" := (same_loc lab).
+Notation "'lab'" := (Ex.lab G).
+Notation "'loc'" := (Ev.loc lab).
+Notation "'val'" := (Ev.val lab).
+Notation "'mod'" := (Ev.mod lab).
+Notation "'same_loc'" := (Ev.same_loc lab).
 
-Notation "'R'" := (fun a => is_true (is_r lab a)).
-Notation "'W'" := (fun a => is_true (is_w lab a)).
-Notation "'F'" := (fun a => is_true (is_f lab a)).
+Notation "'R'" := (fun a => is_true (Ev.is_r lab a)).
+Notation "'W'" := (fun a => is_true (Ev.is_w lab a)).
+Notation "'F'" := (fun a => is_true (Ev.is_f lab a)).
 Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
-Notation "'R_ex'" := (fun a => is_true (R_ex lab a)).
+Notation "'R_ex'" := (fun a => is_true (Ev.R_ex lab a)).
 
-Notation "'Pln'" := (fun a => is_true (is_only_pln lab a)).
-Notation "'Rlx'" := (fun a => is_true (is_rlx lab a)).
-Notation "'Rel'" := (fun a => is_true (is_rel lab a)).
-Notation "'Acq'" := (fun a => is_true (is_acq lab a)).
-Notation "'Acqrel'" := (fun a => is_true (is_acqrel lab a)).
-Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
+Notation "'Pln'" := (fun a => is_true (Ev.is_only_pln lab a)).
+Notation "'Rlx'" := (fun a => is_true (Ev.is_rlx lab a)).
+Notation "'Rel'" := (fun a => is_true (Ev.is_rel lab a)).
+Notation "'Acq'" := (fun a => is_true (Ev.is_acq lab a)).
+Notation "'Acqrel'" := (fun a => is_true (Ev.is_acqrel lab a)).
+Notation "'Sc'" := (fun a => is_true (Ev.is_sc lab a)).
 
 Implicit Type WF : Wf G.
 Implicit Type COMP : complete G.
-Implicit Type SC_PER_LOC : sc_per_loc G.
+Implicit Type SC_PER_LOC : Eco.sc_per_loc G.
 
 (******************************************************************************)
 (** ** Derived relations  *)
@@ -238,7 +247,7 @@ Qed.
 (** ** init *)
 (******************************************************************************)
 
-Lemma no_sw_to_init WF : sw ≡ sw ⨾  ⦗fun x => ~ is_init x⦘.
+Lemma no_sw_to_init WF : sw ≡ sw ⨾  ⦗fun x => ~ Ev.is_init x⦘.
 Proof using.
 split; [|basic_solver].
 rewrite (wf_swD WF) at 1.
@@ -246,7 +255,7 @@ generalize (read_or_fence_is_not_init WF).
 basic_solver 42.
 Qed.
 
-Lemma no_hb_to_init WF : hb ≡ hb ⨾  ⦗fun x => ~ is_init x⦘.
+Lemma no_hb_to_init WF : hb ≡ hb ⨾  ⦗fun x => ~ Ev.is_init x⦘.
 Proof using.
 split; [|basic_solver].
 unfold hb.
@@ -575,12 +584,12 @@ Definition coherent_expanded :=
 Lemma hb_eco_r_alt : 
   hb ⨾ eco ≡ 
     hb ⨾ rf ∪ hb ⨾ co ∪ hb ⨾ co ⨾ rf ∪ hb ⨾ fr ∪ hb ⨾ fr ⨾ rf.
-Proof using. unfold Execution_eco.eco, Execution.fr; basic_solver 42. Qed.
+Proof using. unfold Eco.eco, Ex.fr; basic_solver 42. Qed.
 
 Proposition coherence_expanded_eq :
   coherence <-> coherent_expanded.
 Proof using.
-  unfold coherence; rewrite hb_eco_r_alt; unfold Execution.fr.
+  unfold coherence; rewrite hb_eco_r_alt; unfold Ex.fr.
   unfold coherent_expanded; unnw.
   split; ins.
   - rewrite !seqA in *.
@@ -596,7 +605,7 @@ Qed.
 Proposition coherence_alt :
   irreflexive (hb ∪ hb ⨾ rfe ∪ hb ⨾ co ⨾ rfe^? ∪ hb ⨾ fr ⨾ rfe^?) -> coherence.
 Proof using.
-  unfold coherence; unfold Execution_eco.eco; relsf.
+  unfold coherence; unfold Eco.eco; relsf.
 rewrite rfi_union_rfe; relsf.
 arewrite (rfi ⊆ sb); rewrite sb_in_hb; rewrite !crE; relsf.
 ins; unionL.
@@ -662,7 +671,7 @@ Qed.
 Lemma hb_loc_in_eco WF COH COMP:
   ⦗RW⦘ ⨾ hb ∩ same_loc ⨾ ⦗RW⦘ ⊆ eco ∪ (sb \ rmw) ∪ (sb \ rmw) ⨾ hb ⨾ (sb \ rmw).
 Proof using.
-unfold restr_eq_rel, Events.same_loc.
+unfold restr_eq_rel, Ev.same_loc.
 
 unfolder; ins; desc.
 rename H0 into HB, H2 into SAME_LOC, H into RWx, H1 into RWy.
@@ -762,4 +771,6 @@ Proof using.
   apply COH.
 Qed.
 
-End IMM_hb.
+End ImmHbDefs.
+
+End imm_hb.

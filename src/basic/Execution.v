@@ -35,7 +35,7 @@ Record execution :=
     co : Ev.actid -> Ev.actid -> Prop ;
   }.
 
-Section Execution.
+Section ExecutionDefs.
 
 Variable G : execution.
 
@@ -148,7 +148,7 @@ Qed.
 Lemma sb_same_loc_trans: transitive (sb ∩ same_loc).
 Proof using.
 apply transitiveI.
-unfold Events.same_loc.
+unfold Ev.same_loc.
 unfolder; ins; desf; eauto.
 splits.
 generalize sb_trans; basic_solver 21.
@@ -212,7 +212,7 @@ Lemma wf_frl WF : fr ⊆ same_loc.
 Proof using.
 unfold fr.
 rewrite (wf_rfl WF), (wf_col WF).
-unfold Events.same_loc.
+unfold Ev.same_loc.
 unfolder; ins; desc; congruence. 
 Qed.
 
@@ -278,7 +278,7 @@ split; [|basic_solver].
 arewrite (rmw ⊆ rmw ∩ rmw) at 1.
 rewrite (wf_rmwi WF) at 1.
 arewrite (immediate sb ⊆ sb).
-rewrite wf_sbEv.
+rewrite wf_sbE.
 basic_solver.
 Qed.
 
@@ -321,7 +321,7 @@ Qed.
 Lemma sb_irr : irreflexive sb.
 Proof using.
 unfold sb; unfolder; ins; desf.
-eby eapply ext_sb_irr.
+eby eapply Ev.ext_sb_irr.
 Qed.
 
 Lemma fr_irr WF : irreflexive fr.
@@ -345,10 +345,10 @@ Qed.
 
 Lemma wf_sb : well_founded sb.
 Proof using. 
-  unfold Execution.sb.
-  rewrite <- restr_relEv. eapply wf_mon; [by apply inclusion_restr| ].
+  unfold sb.
+  rewrite <- restr_relE. eapply wf_mon; [by apply inclusion_restr| ].
   apply Wf_nat.well_founded_lt_compat
-    with (f := fun (e: Ev.actid) => if e then 0 else index e + 1).
+    with (f := fun (e: Ev.actid) => if e then 0 else Ev.index e + 1).
   intros x y SB. destruct x, y; simpl in *; lia. 
 Qed.
 
@@ -356,37 +356,37 @@ Qed.
 (** ** init *)
 (******************************************************************************)
 
-Lemma init_w WF: is_init ⊆₁ W.
+Lemma init_w WF: Ev.is_init ⊆₁ W.
 Proof using.
 unfolder; ins.
-unfold is_init in *; destruct x; desf.
+unfold Ev.is_init in *; destruct x; desf.
 specialize (wf_init_lab WF l); unfold Ev.is_w; desf.
 Qed.
 
-Lemma init_pln WF: is_init ⊆₁ Pln.
+Lemma init_pln WF: Ev.is_init ⊆₁ Pln.
 Proof using.
 unfolder; ins.
-unfold is_init in *; destruct x; desf.
-specialize (wf_init_lab WF l); unfold is_only_pln, Events.mod; desf.
+unfold Ev.is_init in *; destruct x; desf.
+specialize (wf_init_lab WF l); unfold Ev.is_only_pln, Ev.mod; desf.
 Qed.
 
-Lemma read_or_fence_is_not_init WF a (A: R a \/ F a) : ~ is_init a.
+Lemma read_or_fence_is_not_init WF a (A: R a \/ F a) : ~ Ev.is_init a.
 Proof using.
 generalize ((init_w WF) a).
 type_solver.
 Qed.
 
-Lemma no_sb_to_init : sb ≡ sb ⨾  ⦗fun x => ~ is_init x⦘.
+Lemma no_sb_to_init : sb ≡ sb ⨾  ⦗fun x => ~ Ev.is_init x⦘.
 Proof using.
 split; [|basic_solver].
-unfold sb; rewrite ext_sb_to_non_init at 1; basic_solver.
+unfold sb; rewrite Ev.ext_sb_to_non_init at 1; basic_solver.
 Qed.
 
 Lemma no_sb_cr_to_init :
-  ⦗set_compl is_init⦘ ⨾ sb^? ⊆ ⦗set_compl is_init⦘ ⨾ sb^? ⨾ ⦗set_compl is_init⦘.
+  ⦗set_compl Ev.is_init⦘ ⨾ sb^? ⊆ ⦗set_compl Ev.is_init⦘ ⨾ sb^? ⨾ ⦗set_compl Ev.is_init⦘.
 Proof using. rewrite no_sb_to_init at 1. clear. basic_solver. Qed.
 
-Lemma no_rf_to_init WF : rf ≡ rf ⨾  ⦗fun x => ~ is_init x⦘.
+Lemma no_rf_to_init WF : rf ≡ rf ⨾  ⦗fun x => ~ Ev.is_init x⦘.
 Proof using.
 split; [|basic_solver].
 rewrite (wf_rfD WF) at 1.
@@ -394,7 +394,7 @@ generalize (read_or_fence_is_not_init WF).
 basic_solver 42.
 Qed.
 
-Lemma rmw_from_non_init WF : rmw ≡ ⦗fun x => ~ is_init x⦘ ⨾ rmw.
+Lemma rmw_from_non_init WF : rmw ≡ ⦗fun x => ~ Ev.is_init x⦘ ⨾ rmw.
 Proof using.
 split; [|basic_solver].
 rewrite (wf_rmwD WF).
@@ -402,7 +402,7 @@ generalize (read_or_fence_is_not_init WF).
 basic_solver 42.
 Qed.
 
-Lemma rmw_non_init_lr WF : rmw ≡ ⦗set_compl is_init⦘ ⨾ rmw ⨾ ⦗set_compl is_init⦘.
+Lemma rmw_non_init_lr WF : rmw ≡ ⦗set_compl Ev.is_init⦘ ⨾ rmw ⨾ ⦗set_compl Ev.is_init⦘.
 Proof using.
   split; [|basic_solver].
   rewrite (rmw_from_non_init WF) at 1.
@@ -413,16 +413,16 @@ Proof using.
   basic_solver.
 Qed.
 
-Lemma init_same_loc WF a b (A: is_init a) (B: is_init b) (LOC: loc a = loc b): 
+Lemma init_same_loc WF a b (A: Ev.is_init a) (B: Ev.is_init b) (LOC: loc a = loc b): 
   a = b.
 Proof using.
 destruct a, b; desf.
 cut (l = l0); [by ins; subst|].
-unfold Events.loc in LOC.
+unfold Ev.loc in LOC.
 rewrite (wf_init_lab WF l), (wf_init_lab WF l0) in LOC; desf.
 Qed.
 
-Lemma Rel_not_init WF : Rel ⊆₁ set_compl is_init.
+Lemma Rel_not_init WF : Rel ⊆₁ set_compl Ev.is_init.
 Proof using. rewrite (init_pln WF). mode_solver. Qed.
 
 (******************************************************************************)
@@ -430,39 +430,39 @@ Proof using. rewrite (init_pln WF). mode_solver. Qed.
 (******************************************************************************)
 
 Lemma sb_semi_total_l x y z 
-  WF (N: ~ is_init x) (NEQ: y <> z) (XY: sb x y) (XZ: sb x z): 
+  WF (N: ~ Ev.is_init x) (NEQ: y <> z) (XY: sb x y) (XZ: sb x z): 
   sb y z \/ sb z y.
 Proof using.
 unfold sb in *; unfolder in *; desf.
-cut (ext_sb y z \/ ext_sb z y); [basic_solver 12|].
-eapply ext_sb_semi_total_l; eauto.
+cut (Ev.ext_sb y z \/ Ev.ext_sb z y); [basic_solver 12|].
+eapply Ev.ext_sb_semi_total_l; eauto.
 eapply WF; splits; eauto.
-by unfold ext_sb in *; destruct y,z; ins; desf; desf.
-by unfold ext_sb in *; destruct y,z; ins; desf; desf.
+by unfold Ev.ext_sb in *; destruct y,z; ins; desf; desf.
+by unfold Ev.ext_sb in *; destruct y,z; ins; desf; desf.
 Qed.
 
 Lemma sb_semi_total_r x y z 
-  WF (N: ~ is_init z) (NEQ: y <> z) (XY: sb y x) (XZ: sb z x): 
+  WF (N: ~ Ev.is_init z) (NEQ: y <> z) (XY: sb y x) (XZ: sb z x): 
   sb y z \/ sb z y.
 Proof using.
 cut ((sb ∪ sb⁻¹) y z); [basic_solver|].
 unfold sb in *; unfolder in *; desf.
-destruct (classic (is_init y)).
-unfold ext_sb; basic_solver.
-cut (ext_sb y z \/ ext_sb z y); [basic_solver|].
-eapply ext_sb_semi_total_r; eauto.
+destruct (classic (Ev.is_init y)).
+unfold Ev.ext_sb; basic_solver.
+cut (Ev.ext_sb y z \/ Ev.ext_sb z y); [basic_solver|].
+eapply Ev.ext_sb_semi_total_r; eauto.
 eapply WF; splits; eauto.
-unfold ext_sb in *; destruct y,z; ins; desf; desf.
+unfold Ev.ext_sb in *; destruct y,z; ins; desf; desf.
 Qed.
 
-Lemma sb_tid_init x y (SB : sb x y): Ev.tid x = Ev.tid y \/ is_init x.
+Lemma sb_tid_init x y (SB : sb x y): Ev.tid x = Ev.tid y \/ Ev.is_init x.
 Proof using.
-generalize ext_sb_tid_init; unfold sb in *.
+generalize Ev.ext_sb_tid_init; unfold sb in *.
 unfolder in *; basic_solver.
 Qed.
 
 Lemma E_ntid_sb_prcl thread :
-  dom_rel (⦗set_compl is_init⦘ ⨾ sb ⨾ ⦗E ∩₁ NTid_ thread⦘) ⊆₁ E ∩₁ NTid_ thread.
+  dom_rel (⦗set_compl Ev.is_init⦘ ⨾ sb ⨾ ⦗E ∩₁ NTid_ thread⦘) ⊆₁ E ∩₁ NTid_ thread.
 Proof using.
   rewrite (dom_l wf_sbE).
   unfolder. ins. desf. splits; auto.
@@ -473,57 +473,57 @@ Proof using.
   intros BB. rewrite BB in *. desf.
 Qed.
 
-Lemma sb_tid_init': sb ≡ sb ∩ same_tid ∪ ⦗is_init⦘ ⨾ sb.
+Lemma sb_tid_init': sb ≡ sb ∩ Ev.same_tid ∪ ⦗Ev.is_init⦘ ⨾ sb.
 Proof using.
 split; [|basic_solver].
 unfold sb.
-rewrite ext_sb_tid_init' at 1.
+rewrite Ev.ext_sb_tid_init' at 1.
 basic_solver 42.
 Qed.
 
-Lemma ninit_sb_same_tid : ⦗ set_compl is_init ⦘ ⨾ sb ⊆ same_tid.
+Lemma ninit_sb_same_tid : ⦗ set_compl Ev.is_init ⦘ ⨾ sb ⊆ Ev.same_tid.
 Proof using.
   rewrite sb_tid_init'.
   basic_solver.
 Qed.
 
-Lemma same_tid_trans : transitive same_tid.
-Proof using.
-  red. unfold same_tid. ins.
+Lemma same_tid_trans : transitive Ev.same_tid.
+Proof using. 
+  red. unfold Ev.same_tid. ins.
   etransitivity; eauto.
 Qed.
 
-Lemma tid_sb: ⦗E⦘ ⨾ same_tid ⨾  ⦗E⦘ ⊆ sb^? ∪ sb^{-1} ∪ (is_init × is_init).
+Lemma tid_sb: ⦗E⦘ ⨾ Ev.same_tid ⨾  ⦗E⦘ ⊆ sb^? ∪ sb^{-1} ∪ (Ev.is_init × Ev.is_init).
 Proof using.
 unfold sb.
-rewrite tid_ext_sb.
+rewrite Ev.tid_ext_sb.
 basic_solver 21.
 Qed.
 
-Lemma tid_n_init_sb: ⦗E⦘ ⨾ same_tid ⨾ ⦗set_compl is_init⦘  ⨾  ⦗E⦘ ⊆ sb^? ∪ sb^{-1}.
+Lemma tid_n_init_sb: ⦗E⦘ ⨾ Ev.same_tid ⨾ ⦗set_compl Ev.is_init⦘  ⨾  ⦗E⦘ ⊆ sb^? ∪ sb^{-1}.
 Proof using.
 unfold sb.
-sin_rewrite tid_n_init_ext_sb.
+sin_rewrite Ev.tid_n_init_ext_sb.
 basic_solver 21.
 Qed.
 
-Lemma init_ninit_sb (WF : Wf) x y (INIT : is_init x) (ININE : E x) (INE : E y)
-      (NINIT : ~ is_init y): sb x y.
+Lemma init_ninit_sb (WF : Wf) x y (INIT : Ev.is_init x) (ININE : E x) (INE : E y)
+      (NINIT : ~ Ev.is_init y): sb x y.
 Proof using. 
-unfold sb, ext_sb; basic_solver.
+unfold sb, Ev.ext_sb; basic_solver.
 Qed.
 
 Lemma same_thread x y (X : E x) (Y : E y)
-      (NINIT : ~ is_init x) (ST : Ev.tid x = Ev.tid y):
+      (NINIT : ~ Ev.is_init x) (ST : Ev.tid x = Ev.tid y):
   sb^? x y \/ sb y x.
 Proof using.
 cut (sb^? y x \/ sb x y); [basic_solver|].
 generalize tid_n_init_sb.
-unfold same_tid; basic_solver 10.
+unfold Ev.same_tid; basic_solver 10.
 Qed.
 
 Lemma sb_immediate_adjacent WF:
- ⦗fun a => ~ is_init a⦘ ⨾ immediate sb ≡ ⦗fun a => ~ is_init a⦘ ⨾ (adjacent sb ∩ sb).
+ ⦗fun a => ~ Ev.is_init a⦘ ⨾ immediate sb ≡ ⦗fun a => ~ Ev.is_init a⦘ ⨾ (adjacent sb ∩ sb).
 Proof using.
 apply immediate_adjacent.
 - unfolder; ins; desf; destruct (classic (x=y)); auto.
@@ -535,7 +535,7 @@ apply immediate_adjacent.
 Qed.
 
 Lemma sb_total t:
-  is_total ((E \₁ is_init) ∩₁ Tid_ t) sb. 
+  is_total ((E \₁ Ev.is_init) ∩₁ Tid_ t) sb. 
 Proof using.
   red. ins. unfolder in IWa. unfolder in IWb. desc. subst. 
   destruct a, b; try by vauto. simpl in *. subst.
@@ -575,7 +575,7 @@ Proof using. by apply functional_alt, WF. Qed.
 Lemma rf_fr WF : rf ⨾ fr ⊆ co.
 Proof using. unfold fr; sin_rewrite rf_transp_rf; rels. Qed.
 Lemma rmw_in_sb_loc WF: rmw ⊆ sb ∩ same_loc.
-Proof using. by rewrite (loceq_same_loc (loceq_rmw WF)), (rmw_in_sb WF). Qed.
+Proof using. by rewrite (Ev.loceq_same_loc (loceq_rmw WF)), (rmw_in_sb WF). Qed.
 Lemma rf_irr WF: irreflexive rf.
 Proof using. rewrite (wf_rfD WF); type_solver. Qed.
 Lemma co_co WF: co ⨾ co ⊆ co.
@@ -603,7 +603,7 @@ by rewrite (rmw_sb_ct WF).
 Qed.
 *)
 
-Lemma wf_rmwt WF: rmw ⊆ same_tid.
+Lemma wf_rmwt WF: rmw ⊆ Ev.same_tid.
 Proof using.
 rewrite (rmw_from_non_init WF).
 rewrite (rmw_in_sb WF), sb_tid_init'.
@@ -701,7 +701,7 @@ Proof using. unfold coi; basic_solver. Qed.
 Lemma coe_in_co : coe ⊆ co.
 Proof using. unfold coe; basic_solver. Qed.
 
-Lemma ninit_rfi_same_tid : ⦗ set_compl is_init ⦘ ⨾ rfi ⊆ same_tid.
+Lemma ninit_rfi_same_tid : ⦗ set_compl Ev.is_init ⦘ ⨾ rfi ⊆ Ev.same_tid.
 Proof using.
   arewrite (rfi ⊆ sb).
   apply ninit_sb_same_tid.
@@ -753,7 +753,7 @@ unfolder in *; basic_solver 21.
 Qed.
 
 Lemma re_ri WF  r r' (IRR: irreflexive r)  (IRR2: irreflexive (r ⨾ sb))
-  (N: r ⊆ r ⨾  ⦗ fun x => ~ is_init x ⦘): (r \ sb) ⨾ (r' ∩ sb) ⊆ r ⨾  r' \ sb.
+  (N: r ⊆ r ⨾  ⦗ fun x => ~ Ev.is_init x ⦘): (r \ sb) ⨾ (r' ∩ sb) ⊆ r ⨾  r' \ sb.
 Proof using.
 rewrite N at 1.
 unfolder; ins; desf; splits; eauto.
@@ -764,7 +764,7 @@ eby intro; subst; eapply IRR.
 Qed.
 
 Lemma ri_re WF  r r' (IRR: irreflexive r')  (IRR2: irreflexive (r' ⨾ sb)): 
- ⦗ fun x => ~ is_init x ⦘ ⨾ (r ∩ sb) ⨾ (r' \ sb) ⊆ r ⨾  r' \ sb.
+ ⦗ fun x => ~ Ev.is_init x ⦘ ⨾ (r ∩ sb) ⨾ (r' \ sb) ⊆ r ⨾  r' \ sb.
 Proof using.
 unfolder; ins; desf; splits; eauto.
 intro.
@@ -778,8 +778,8 @@ Proof using. rewrite wf_rfl; basic_solver 12. Qed.
 Lemma coi_in_sbloc WF : co ∩ sb ⊆ restr_eq_rel loc sb.
 Proof using. rewrite wf_col; basic_solver 12. Qed.
 Lemma fri_in_sbloc WF : fr ∩ sb ⊆ restr_eq_rel loc sb.
-Proof using. rewrite (loceq_same_loc (loceq_fr WF)).
-unfolder; unfold Events.same_loc in *.
+Proof using. rewrite (Ev.loceq_same_loc (loceq_fr WF)).
+unfolder; unfold Ev.same_loc in *.
 ins; desf; splits; eauto; congruence.
 Qed.
 Lemma rfi_in_sbloc' WF : rfi ⊆ sb ∩ same_loc.
@@ -902,7 +902,7 @@ Qed.
 
 Definition W_ex := codom_rel rmw.
 
-Lemma W_ex_not_init WF : W_ex ⊆₁ set_compl is_init.
+Lemma W_ex_not_init WF : W_ex ⊆₁ set_compl Ev.is_init.
 Proof using.
   unfolder. ins. desf.
   match goal with
@@ -918,7 +918,7 @@ Proof using.
 unfold W_ex; rewrite (dom_r (wf_rmwD WF)); basic_solver.
 Qed.
 
-Lemma W_ex_in_E WF : W_ex ⊆₁ Ev.
+Lemma W_ex_in_E WF : W_ex ⊆₁ E.
 Proof using.
   unfold W_ex. rewrite (dom_r (wf_rmwE WF)). basic_solver.
 Qed.
@@ -930,7 +930,7 @@ Proof using.
   clear. basic_solver 10.
 Qed.
 
-Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
+Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (Ev.is_xacq lab a))).
 
 Lemma W_ex_acq_in_W WF : W_ex_acq ⊆₁ W.
 Proof using.
@@ -942,7 +942,7 @@ Proof using.
 unfold W_ex; basic_solver.
 Qed.
 
-Lemma W_ex_acq_not_init WF : W_ex_acq ⊆₁ set_compl is_init.
+Lemma W_ex_acq_not_init WF : W_ex_acq ⊆₁ set_compl Ev.is_init.
 Proof using.
   unfolder. ins. desf.
   match goal with
@@ -976,7 +976,7 @@ Qed.
 Lemma wf_rfrmwl WF: rf ⨾ rmw ⊆ same_loc. 
 Proof using.
 rewrite (wf_rfl WF), (wf_rmwl WF).
-generalize same_loc_trans; basic_solver.
+generalize Ev.same_loc_trans; basic_solver.
 Qed.
 
 Lemma wf_rfrmwf WF: functional (rf ⨾ rmw)⁻¹.
@@ -1004,18 +1004,18 @@ Proof using.
   basic_solver 21.
 Qed.
 
-Lemma ninit_rfi_rmw_same_tid WF : ⦗ set_compl is_init ⦘ ⨾ rfi ⨾ rmw ⊆ same_tid.
+Lemma ninit_rfi_rmw_same_tid WF : ⦗ set_compl Ev.is_init ⦘ ⨾ rfi ⨾ rmw ⊆ Ev.same_tid.
 Proof using.
   rewrite (wf_rmwt WF).
   sin_rewrite ninit_rfi_same_tid.
   apply transitiveI. apply same_tid_trans.
 Qed.
 
-Lemma ninit_rfi_rmw_rt_same_tid WF : ⦗ set_compl is_init ⦘ ⨾ (rfi ⨾ rmw)＊ ⊆ same_tid.
+Lemma ninit_rfi_rmw_rt_same_tid WF : ⦗ set_compl Ev.is_init ⦘ ⨾ (rfi ⨾ rmw)＊ ⊆ Ev.same_tid.
 Proof using.
-  apply rt_ind_left with (P:= fun r => ⦗set_compl is_init⦘ ⨾ r).
+  apply rt_ind_left with (P:= fun r => ⦗set_compl Ev.is_init⦘ ⨾ r).
   { by eauto with hahn. }
-  { unfold same_tid. basic_solver 12. }
+  { unfold Ev.same_tid. basic_solver 12. }
   intros k AA. rewrite !seqA.
   rewrite (dom_r (rmw_non_init_lr WF)). rewrite !seqA.
   rewrite AA.
@@ -1065,7 +1065,7 @@ Proof using.
   { rewrite (dom_r (wf_rmwD WF)) at 1. basic_solver 10. }
   rewrite ct_of_trans.
   { basic_solver 10. }
-  generalize sb_trans, same_loc_trans. basic_solver 20.
+  generalize sb_trans, Ev.same_loc_trans. basic_solver 20.
 Qed.
 
 Lemma s_sw_in_ar_helper WF:
@@ -1099,7 +1099,7 @@ Qed.
 Lemma sb_co_irr WF :
   irreflexive ((⦗F⦘ ⨾ sb)^? ⨾ co).
 Proof using.
-  rewrite crEv. rewrite seq_union_l, !seq_id_l.
+  rewrite crE. rewrite seq_union_l, !seq_id_l.
   apply irreflexive_union. split.
   { by apply co_irr. }
   rewrite (wf_coD WF).
@@ -1232,7 +1232,7 @@ Proof using.
   assert (loc c = Some l) as LOCC.
   { rewrite <- YLOC. by apply (wf_col WF). }
   assert (E c) as EC.
-  { by apply P_in_Ev. }
+  { by apply P_in_E. }
   assert (W c) as WC.
   { by apply P_in_W. }
   
@@ -1302,9 +1302,7 @@ Proof using.
   all: apply seq_eqv_r; split; auto.
 Qed.
 
-
-
-End Execution.
+End ExecutionDefs.
 
 (******************************************************************************)
 (** ** Tactics *)
@@ -1312,4 +1310,6 @@ End Execution.
 
 #[global]
 Hint Unfold rfe coe fre rfi coi fri : ie_unfolderDb.
-Tactic Notation "ie_unfolder" :=  repeat autounfold with ie_unfolderDb in *.
+Tactic Notation "ie_unfolder" := repeat autounfold with ie_unfolderDb in *.
+
+End Execution.

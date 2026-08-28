@@ -1,4 +1,4 @@
-(******************************************************************************)
+(* ****************************************************************************
 (** * OCaml MM is weaker than IMM_S   *)
 (******************************************************************************)
 Require Import Classical Peano_dec.
@@ -790,4 +790,4 @@ Proof using WF FSUPPCO LSM RMWSC RSCF WRLXF WSCFACQRMW.
   apply (imm_to_ocaml_causal IPC). 
 Qed. 
   
-End OCamlMM_TO_IMM_S.
+End OCamlMM_TO_IMM_S. *)

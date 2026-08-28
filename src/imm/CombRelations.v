@@ -15,28 +15,38 @@ From hahnExt Require Import HahnExt.
 
 Set Implicit Arguments.
 
+Module CombRelations (Val : ValueSig) (Ev : Events Val).
+
+Module Import ImmS := imm_s Val Ev.
+Module SHb := ImmS.SHbModel.
+Module Import Ppo := ImmS.Ppo.
+Module Import Bob := ImmS.Bob.
+Module Import Eco := ImmS.Eco.
+Module Import Ex := ImmS.Ex.
+Import Ev.
+
 Section Relations.
 
 Variable G : execution.
 Variable sc : relation actid.
 
-Notation "'E'" := (acts_set G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
+Notation "'data'" := (Ex.data G).
+Notation "'addr'" := (Ex.addr G).
+Notation "'ctrl'" := (Ex.ctrl G).
 
-Notation "'sb'" := (sb G).
-Notation "'eco'" := (eco G).
-Notation "'fr'" := (fr G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'eco'" := (Eco.eco G).
+Notation "'fr'" := (Ex.fr G).
 
-Notation "'hb'" := (hb G).
-Notation "'release'" := (release G).
-Notation "'sw'" := (sw G).
+Notation "'hb'" := (SHb.hb G).
+Notation "'release'" := (SHb.release G).
+Notation "'sw'" := (SHb.sw G).
 
-Notation "'lab'" := (lab G).
+Notation "'lab'" := (Ex.lab G).
 Notation "'loc'" := (loc lab).
 Notation "'val'" := (val lab).
 Notation "'mod'" := (mod lab).
@@ -62,12 +72,12 @@ Notation "'Acqrel'" := (fun a => is_true (is_acqrel lab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 Implicit Type WF : Wf G.
-Implicit Type WF_SC : wf_sc G sc.
-Implicit Type IMMCON : imm_consistent G sc.
-Implicit Type CSC : coh_sc G sc.
+Implicit Type WF_SC : ImmS.wf_sc G sc.
+Implicit Type IMMCON : ImmS.imm_consistent G sc.
+Implicit Type CSC : ImmS.coh_sc G sc.
 Implicit Type COMP : complete G.
-Implicit Type COH : coherence G.
-Implicit Type ACYC_EXT : acyc_ext G sc.
+Implicit Type COH : SHb.coherence G.
+Implicit Type ACYC_EXT : ImmS.acyc_ext G sc.
 Implicit Type AT : rmw_atomicity G.
 
 
@@ -177,7 +187,7 @@ Qed.
 Lemma urr_codom_n_init l WF WF_SC: urr l ⨾ ⦗ Init ⦘ ⊆ ⦗ Init ⦘.
 Proof using.
 unfold urr.
-rewrite (no_hb_to_init WF), (no_sc_to_init WF WF_SC), (no_rf_to_init WF).
+rewrite (SHb.no_hb_to_init WF), (ImmS.no_sc_to_init WF WF_SC), (no_rf_to_init WF).
 unfolder; ins; desf; eauto.
 Qed.
 
@@ -190,10 +200,10 @@ Lemma urr_refl l : ⦗ W_ l ⦘ ⊆ urr l.
 Proof using. unfold urr; basic_solver 21. Qed.
 
 Lemma urr_hb l : urr l ⨾ hb^? ⊆ urr l.
-Proof using. unfold urr; generalize (@hb_trans G); basic_solver 21. Qed.
+Proof using. unfold urr; generalize (@SHb.hb_trans G); basic_solver 21. Qed.
 
 Lemma urr_hb' l : urr l ⨾ hb ⊆ urr l.
-Proof using. unfold urr; generalize (@hb_trans G); basic_solver 21. Qed.
+Proof using. unfold urr; generalize (@SHb.hb_trans G); basic_solver 21. Qed.
 
 Lemma hb_in_urr l : ⦗ W_ l ⦘ ⨾ hb^? ⊆ urr l.
 Proof using.
@@ -205,7 +215,7 @@ Proof using.
 unfold urr; rewrite !seqA.
 do 2 hahn_frame_l.
 rewrite (crE sc) at 1; relsf; unionL.
-by generalize (@hb_trans G); basic_solver 21. 
+by generalize (@SHb.hb_trans G); basic_solver 21. 
 rewrite (crE hb); relsf; unionL; [basic_solver 12|].
 rewrite (dom_r (wf_scD WF_SC)), !seqA.
 rewrite (f_sc_hb_f_sc_in_sc WF WF_SC ACYC_EXT).
@@ -222,10 +232,10 @@ unfold urr; rewrite !seqA.
     rewrite (dom_r (wf_rfD WF)).
     type_solver 16.
   * do 4 (hahn_frame_l).
-    unfold imm_s_hb.hb.
+    unfold SHb.hb.
     rewrite ct_end at 1; relsf; unionL.
     basic_solver 16.
-    unfold imm_s_hb.sw at 2.
+    unfold SHb.sw at 2.
 rewrite !seqA.
 hahn_frame_l.
     rewrite (dom_r (wf_rfD WF)) at 1.
@@ -240,10 +250,10 @@ unfold urr; rewrite !seqA.
     rewrite (dom_r (wf_rfD WF)).
     mode_solver 16.
   * do 4 (hahn_frame_l).
-    unfold imm_s_hb.hb.
+    unfold SHb.hb.
     rewrite ct_end at 1; relsf; unionL.
     basic_solver 16.
-    rewrite (dom_r (wf_swD WF)).
+    rewrite (dom_r (SHb.wf_swD WF)).
     type_solver.
 Qed.
 
@@ -258,13 +268,13 @@ split.
     type_solver.
   * unionR left.
     do 4 (hahn_frame_l).
-    unfold imm_s_hb.hb.
+    unfold SHb.hb.
     rewrite ct_end at 1; relsf; unionL.
     basic_solver.
-    rewrite (dom_r (wf_swD WF)).
+    rewrite (dom_r (SHb.wf_swD WF)).
     type_solver.
-- rewrite sb_in_hb.
-  generalize (@hb_trans G); ins; relsf.
+- rewrite SHb.sb_in_hb.
+  generalize (@SHb.hb_trans G); ins; relsf.
   basic_solver 21.
 Qed.
 
@@ -277,11 +287,11 @@ by rewrite (dom_r (wf_scD WF_SC)); basic_solver.
 arewrite ((hb ⨾ ⦗F ∩₁ Sc⦘)^? ⨾ ⦗set_compl F⦘ ⊆ ⦗set_compl F⦘).
 by basic_solver.
 basic_solver 12.
-- unfold imm_s_hb.hb.
+- unfold SHb.hb.
 rewrite ct_end at 2; relsf.
 unionL.
 basic_solver 21.
-unfold imm_s_hb.sw at 3; rewrite !seqA.
+unfold SHb.sw at 3; rewrite !seqA.
 arewrite ((sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⨾ ⦗set_compl F⦘ ⊆ ⦗Acq⦘).
 basic_solver.
 unfold msg_rel, urr.
@@ -291,7 +301,7 @@ Qed.
 Lemma msg_rel_urr WF l : msg_rel l ⨾ rf ⨾ ⦗ Acq ⦘ ⊆ urr l.
 Proof using.
 unfold msg_rel.
-rewrite seqA, (release_rf_in_sw WF), sw_in_hb.
+rewrite seqA, (SHb.release_rf_in_sw WF), SHb.sw_in_hb.
 arewrite (hb ⊆ hb^?); apply urr_hb.
 Qed.
 
@@ -335,7 +345,7 @@ generalize (eco_trans WF); ins; relsf.
 rewrite (crE sc).
 relsf; repeat (splits; try apply irreflexive_union).
 - 
-generalize (@hb_trans G); ins; relsf.
+generalize (@SHb.hb_trans G); ins; relsf.
 rewrite (crE hb); relsf; apply irreflexive_union; splits.
 by apply (eco_irr WF).
 red in COH; revert COH; basic_solver 20.
@@ -352,27 +362,27 @@ Qed.
 Lemma transp_rf_co_urr_irr l WF WF_SC CSC COH: irreflexive (rf^{-1} ^? ⨾ co ⨾ urr l).
 Proof using.
 arewrite ((rf⁻¹)^? ⨾ co ⊆ eco).
-by unfold Execution_eco.eco, Execution.fr; basic_solver 21.
+by unfold Eco.eco, Ex.fr; basic_solver 21.
 eby apply eco_urr_irr.
 Qed.
 
 Lemma release_co_urr_irr l WF WF_SC COMP CSC COH: irreflexive (release ⨾ co ⨾ urr l).
 Proof using.
-rewrite release_in_hb_co; auto.
-2: by apply coherence_sc_per_loc, COH.
+rewrite SHb.release_in_hb_co; auto.
+2: by apply SHb.coherence_sc_per_loc, COH.
 rewrite seqA.
 arewrite (co^? ⨾ co ⊆ co) by generalize (co_trans WF); basic_solver.
 rotate 1.
 sin_rewrite urr_hb.
 arewrite (co ⊆ eco).
-by unfold Execution_eco.eco, Execution.fr; basic_solver 21.
+by unfold Eco.eco, Ex.fr; basic_solver 21.
 by rotate 1; apply eco_urr_irr.
 Qed.
 
 Lemma sb_transp_rf_co_urr_irr l WF WF_SC CSC COH: irreflexive (sb ⨾ rf^{-1} ^? ⨾ co ⨾ urr l).
 Proof using.
 rotate 1.
-rewrite sb_in_hb.
+rewrite SHb.sb_in_hb.
 arewrite (hb ⊆ hb^?).
 sin_rewrite urr_hb.
 by rotate 2; apply transp_rf_co_urr_irr.
@@ -390,7 +400,7 @@ arewrite (rf^? ⊆ eco^?).
 generalize (eco_trans WF); ins; relsf.
 rewrite (crE sc).
 
-generalize (@hb_trans G); ins; relsf.
+generalize (@SHb.hb_trans G); ins; relsf.
 
 relsf; repeat (splits; try apply irreflexive_union).
 -
@@ -454,7 +464,7 @@ Proof using.
 split.
 - unfold urr.
 rewrite (wf_rfE WF) at 1.
-rewrite (wf_hbE WF) at 1 2.
+rewrite (SHb.wf_hbE WF) at 1 2.
 rewrite (wf_scE WF_SC) at 1.
 basic_solver 21.
 - unionL; [|basic_solver].
@@ -536,25 +546,25 @@ Lemma s_tmr_helper l codom WF:
 Proof using.
 unfold S_tmr.
 split.
-- unfold imm_s_hb.hb.
+- unfold SHb.hb.
   rewrite ct_end at 1; relsf.
   unionL; [basic_solver 21|].
-  unfold imm_s_hb.sw at 2; rewrite !seqA.
+  unfold SHb.sw at 2; rewrite !seqA.
   arewrite (⦗F ∩₁ Sc⦘ ⊆ ⦗F ∩₁ Sc⦘ ⨾ ⦗F ∩₁ Sc⦘) at 1.
     by basic_solver.
   arewrite (rf ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⨾ ⦗F ∩₁ Sc⦘ ⊆ rf ⨾ sb).
     by rewrite (dom_r (wf_rfD WF)) at 1; type_solver 22.
   basic_solver 42.
 - arewrite_id ⦗F ∩₁ Sc⦘ at 1.
-  generalize (@hb_trans G); ins; relsf.
+  generalize (@SHb.hb_trans G); ins; relsf.
   case_refl (release ⨾ rf).
-  * rewrite (sb_in_hb); relsf.
+  * rewrite (SHb.sb_in_hb); relsf.
   * arewrite (⦗F ∩₁ Sc⦘ ⊆ ⦗F ∩₁ Sc⦘ ⨾ ⦗F ∩₁ Sc⦘) at 1.
       by basic_solver.
     arewrite (⦗F ∩₁ Sc⦘ ⊆ ⦗F ∩₁ Acq⦘) at 1 by mode_solver.
     arewrite (release ⨾ rf ⨾ sb ⨾ ⦗F ∩₁ Acq⦘ ⊆ sw).
-      by unfold imm_s_hb.sw; basic_solver 12.
-    rewrite (sw_in_hb); relsf.
+      by unfold SHb.sw; basic_solver 12.
+    rewrite (SHb.sw_in_hb); relsf.
 Qed.
 
 (******************************************************************************)
@@ -572,7 +582,7 @@ Proof using.
   unfold urr.
   assert (is_init ≡₁ is_init ∩₁ W) as I' by (generalize init_w; basic_solver).
   rewrite I' at 2. 
-  rewrite no_sc_to_init with (sc := sc), no_hb_to_init, no_rf_to_init; eauto.
+  rewrite ImmS.no_sc_to_init with (sc := sc), SHb.no_hb_to_init, no_rf_to_init; eauto.
   basic_solver 20.
 Qed.
 
@@ -634,7 +644,7 @@ unfold urr.
 split.
 arewrite_id ⦗F ∩₁ Sc⦘; rels.
 case_refl sc.
-generalize (@hb_trans G); basic_solver 21.
+generalize (@SHb.hb_trans G); basic_solver 21.
 rewrite (dom_l (wf_scD WF_SC)); basic_solver 21.
 Qed.
 
@@ -657,13 +667,13 @@ Lemma urr_hb_sc_hb l  WF WF_SC ACYC_EXT : urr l ⨾ hb ⨾ sc^? ⨾ hb^? ⊆ urr
 Proof using.
 rewrite (urr_alt l WF_SC), !seqA.
 case_refl sc.
-generalize (@hb_trans G); basic_solver 21.
+generalize (@SHb.hb_trans G); basic_solver 21.
 case_refl (sc).
-generalize (@hb_trans G); basic_solver 21.
+generalize (@SHb.hb_trans G); basic_solver 21.
 rewrite (dom_l (wf_scD WF_SC)) at 2.
 arewrite (⦗W_ l⦘ ⨾ rf^? ⨾ hb^? ⨾ sc ⨾ hb^? ⨾ hb ⊆ urr l).
 rewrite (urr_alt l WF_SC).
-generalize (@hb_trans G); basic_solver 21.
+generalize (@SHb.hb_trans G); basic_solver 21.
 sin_rewrite (urr_f_sc WF WF_SC ACYC_EXT).
 rewrite !seqA.
 generalize (sc_trans WF_SC); ins; relsf.
@@ -795,3 +805,5 @@ Global Add Parametric Morphism : furr with signature
 Proof using. 
   ins. split; apply furr_mori; auto; apply H.
 Qed. 
+
+End CombRelations.

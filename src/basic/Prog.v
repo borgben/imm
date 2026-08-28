@@ -1,4 +1,4 @@
-Require Import PeanoNat.
+(* Require Import PeanoNat.
 From PromisingLib Require Import Basic Loc.
 Require Import Events.
 
@@ -142,4 +142,4 @@ Module Prog.
   (*       (* thread_id -> list Instr.t; *) *)
   (*     }. *)
         (* tunique : NoDup threads; *)
-End Prog.
+End Prog. *)

@@ -10,36 +10,43 @@ Require Import FairExecution.
 
 Set Implicit Arguments.
 
-Section TSO.
+Module TSO
+    (Val : ValueSig)
+    (Ev : Events Val).
+
+Module Import Eco := Execution_eco Val Ev.
+Module Import Ex := Eco.Ex.
+
+Section TSODefs.
 
 Variable G : execution.
 
-Notation "'E'" := (acts_set G).
-Notation "'lab'" := (lab G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
-Notation "'deps'" := (deps G).
-Notation "'fre'" := (fre G).
-Notation "'rfe'" := (rfe G).
-Notation "'coe'" := (coe G).
-Notation "'rfi'" := (rfi G).
-Notation "'fri'" := (fri G).
-Notation "'fr'" := (fr G).
-Notation "'eco'" := (eco G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'lab'" := (Ex.lab G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
+Notation "'data'" := (Ex.data G).
+Notation "'addr'" := (Ex.addr G).
+Notation "'ctrl'" := (Ex.ctrl G).
+Notation "'deps'" := (Ex.deps G).
+Notation "'fre'" := (Ex.fre G).
+Notation "'rfe'" := (Ex.rfe G).
+Notation "'coe'" := (Ex.coe G).
+Notation "'rfi'" := (Ex.rfi G).
+Notation "'fri'" := (Ex.fri G).
+Notation "'fr'" := (Ex.fr G).
+Notation "'eco'" := (Eco.eco G).
 
-Notation "'R'" := (fun a => is_true (is_r lab a)).
-Notation "'W'" := (fun a => is_true (is_w lab a)).
-Notation "'F'" := (fun a => is_true (is_f lab a)).
+Notation "'R'" := (fun a => is_true (Ev.is_r lab a)).
+Notation "'W'" := (fun a => is_true (Ev.is_w lab a)).
+Notation "'F'" := (fun a => is_true (Ev.is_f lab a)).
 Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
 
-Notation "'MFENCE'" := (F ∩₁ (fun a => is_true (is_sc lab a))).
+Notation "'MFENCE'" := (F ∩₁ (fun a => is_true (Ev.is_sc lab a))).
 
 (******************************************************************************)
 (** ** Derived relations  *)
@@ -60,12 +67,12 @@ Definition hb := ppo ∪ fence ∪ implied_fence ∪ rfe ∪ co ∪ fr.
 Implicit Type WF : Wf G.
 Implicit Type COMP : complete G.
 Implicit Type ATOM : rmw_atomicity G.
-Implicit Type SC_PER_LOC : sc_per_loc G.
+Implicit Type SC_PER_LOC : Eco.sc_per_loc G.
 
 Definition TSOConsistent :=
   ⟪ WF : Wf G ⟫ /\
   ⟪ COMP : complete G ⟫ /\
-  ⟪ SC_PER_LOC: sc_per_loc G ⟫ /\
+  ⟪ SC_PER_LOC: Eco.sc_per_loc G ⟫ /\
   ⟪ ATOMICITY : rmw_atomicity G ⟫ /\
   ⟪ GHB : acyclic hb ⟫.
 
@@ -116,7 +123,7 @@ rewrite (wf_rmwD WF) at 1 2.
 rewrite (wf_rfeD WF) at 1.
 rewrite (wf_coD WF) at 1.
 rewrite (wf_frD WF) at 1.
-generalize (R_ex_in_R lab).
+generalize (Ev.R_ex_in_R lab).
 basic_solver 42.
 Qed.
 
@@ -176,5 +183,7 @@ Proof using.
   unfold ppo. unfolder. ins. desc. splits; vauto. intros [? ?]. type_solver.  
 Qed.
 
+
+End TSODefs.
 
 End TSO.

@@ -10,43 +10,48 @@ Require Import Execution.
 
 Set Implicit Arguments.
 
+Module Execution_eco
+    (Val : ValueSig)
+    (Ev : Events Val).
+
+Module Import Ex := Execution Val Ev.
 
 Section ECO.
 Variable G : execution.
 
-Notation "'E'" := (acts_set G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
 
-Notation "'fr'" := (fr G).
-Notation "'coe'" := (coe G).
-Notation "'coi'" := (coi G).
-Notation "'rfi'" := (rfi G).
-Notation "'rfe'" := (rfe G).
-Notation "'fre'" := (fre G).
-Notation "'fri'" := (fri G).
+Notation "'fr'" := (Ex.fr G).
+Notation "'coe'" := (Ex.coe G).
+Notation "'coi'" := (Ex.coi G).
+Notation "'rfi'" := (Ex.rfi G).
+Notation "'rfe'" := (Ex.rfe G).
+Notation "'fre'" := (Ex.fre G).
+Notation "'fri'" := (Ex.fri G).
 
-Notation "'lab'" := (lab G).
-Notation "'loc'" := (loc lab).
-Notation "'val'" := (val lab).
-Notation "'mod'" := (mod lab).
-Notation "'same_loc'" := (same_loc lab).
+Notation "'lab'" := (Ex.lab G).
+Notation "'loc'" := (Ev.loc lab).
+Notation "'val'" := (Ev.val lab).
+Notation "'mod'" := (Ev.mod lab).
+Notation "'same_loc'" := (Ev.same_loc lab).
 
-Notation "'R'" := (fun a => is_true (is_r lab a)).
-Notation "'W'" := (fun a => is_true (is_w lab a)).
-Notation "'F'" := (fun a => is_true (is_f lab a)).
+Notation "'R'" := (fun a => is_true (Ev.is_r lab a)).
+Notation "'W'" := (fun a => is_true (Ev.is_w lab a)).
+Notation "'F'" := (fun a => is_true (Ev.is_f lab a)).
 Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
 
-Notation "'Pln'" := (is_only_pln lab).
-Notation "'Rlx'" := (is_rlx lab).
-Notation "'Rel'" := (is_rel lab).
-Notation "'Acq'" := (is_acq lab).
-Notation "'Acqrel'" := (is_acqrel lab).
-Notation "'Sc'" := (is_sc lab).
+Notation "'Pln'" := (Ev.is_only_pln lab).
+Notation "'Rlx'" := (Ev.is_rlx lab).
+Notation "'Rel'" := (Ev.is_rel lab).
+Notation "'Acq'" := (Ev.is_acq lab).
+Notation "'Acqrel'" := (Ev.is_acqrel lab).
+Notation "'Sc'" := (Ev.is_sc lab).
 
 Implicit Type WF : Wf G.
 Implicit Type COMP : complete G.
@@ -115,12 +120,12 @@ Qed.
 
 Lemma eco_alt WF: eco ≡ (co ∪ fr) ∪ (co ∪ fr)^? ⨾ rf.
 Proof using.
-  unfold eco, Execution.fr; basic_solver 42.
+  unfold eco, Ex.fr; basic_solver 42.
 Qed.
 
 Lemma eco_alt2 WF: eco ≡ rf ∪ (rf⁻¹)^? ⨾ co ⨾ rf^?.
 Proof using.
-  unfold eco, Execution.fr; basic_solver 42.
+  unfold eco, Ex.fr; basic_solver 42.
 Qed.
 
 Lemma eco_trans WF: transitive eco.
@@ -174,14 +179,14 @@ ins; desf.
   desf.
   destruct (classic (wx=wy)); try subst; eauto.
   assert (co wx wy \/ co wy wx); cycle 1.
-  by unfold eco, Execution.fr; basic_solver 42.
+  by unfold eco, Ex.fr; basic_solver 42.
   eapply WF; unfolder; splits; eauto.
   by apply (loceq_rf WF) in H; apply (loceq_rf WF) in H0; congruence.
 - assert (exists wy, rf wy y) by (apply COMP; basic_solver).
   desf.
   destruct (classic (wy=x)); [subst; unfold eco; basic_solver 5|].
   assert (co wy x \/ co x wy); cycle 1.
-  by unfold eco, Execution.fr; basic_solver 42.
+  by unfold eco, Ex.fr; basic_solver 42.
   eapply WF; unfolder; splits; eauto.
   by apply (loceq_rf WF) in H; congruence.
 - assert (exists wx, rf wx x).
@@ -189,7 +194,7 @@ ins; desf.
   desf.
   destruct (classic (wx=y)); [subst; unfold eco; basic_solver 5|].
   assert (co wx y \/ co y wx); cycle 1.
-  by unfold eco, Execution.fr; basic_solver 42.
+  by unfold eco, Ex.fr; basic_solver 42.
   eapply WF; unfolder; splits; eauto.
   by apply (loceq_rf WF) in H; congruence.
 - assert (co x y \/ co y x); [eapply WF|unfold eco]; basic_solver 10.
@@ -198,7 +203,7 @@ Qed.
 
 Lemma transp_rf_rf_eco_in_eco WF : rf⁻¹ ⨾ rf ⨾ eco ⊆ eco.
 Proof using.
-unfold eco, Execution.fr; relsf.
+unfold eco, Ex.fr; relsf.
 rewrite rf_rf; auto.
 seq_rewrite rf_co; auto.
 rewrite !seqA.
@@ -207,7 +212,7 @@ Qed.
 
 Lemma eco_transp_rf_rf_in_eco WF : eco ⨾ rf⁻¹ ⨾ rf ⊆ eco.
 Proof using.
-unfold eco, Execution.fr; relsf.
+unfold eco, Ex.fr; relsf.
 rewrite !seqA, !crE; relsf.
 arewrite_false (co ⨾ rf⁻¹).
 by rewrite (wf_coD WF), (wf_rfD WF); type_solver.
@@ -219,14 +224,14 @@ Qed.
 (** ** implications of SC_PER_LOC  *)
 (******************************************************************************)
 
-Lemma no_co_to_init WF SC_PER_LOC : co ≡ co ⨾ ⦗set_compl is_init⦘. 
+Lemma no_co_to_init WF SC_PER_LOC : co ≡ co ⨾ ⦗set_compl Ev.is_init⦘. 
 Proof using.
   split; [| basic_solver].
   rewrite wf_coE at 1; try done.
   unfolder; ins; splits; auto; desf; intro.
   eapply SC_PER_LOC; exists x; splits; [|eby apply co_in_eco].
-  unfold Execution.sb; unfolder; splits; try done.
-  cut (~ is_init x).
+  unfold Ex.sb; unfolder; splits; try done.
+  cut (~ Ev.is_init x).
   { destruct x, y; ins. }
   intro.
   assert (x=y).
@@ -235,33 +240,34 @@ Proof using.
 Qed.
 
 Lemma no_co_cr_to_init WF SC_PER_LOC :
-  ⦗set_compl is_init⦘ ⨾ co^? ⊆ ⦗set_compl is_init⦘ ⨾ co^? ⨾ ⦗set_compl is_init⦘.
+  ⦗set_compl Ev.is_init⦘ ⨾ co^? ⊆
+    ⦗set_compl Ev.is_init⦘ ⨾ co^? ⨾ ⦗set_compl Ev.is_init⦘.
 Proof using.
   rewrite no_co_to_init at 1; auto.
   clear. basic_solver.
 Qed.
 
-Lemma no_fr_to_init WF SC_PER_LOC : fr ⊆ fr ⨾  ⦗fun x => ~ is_init x⦘.
+Lemma no_fr_to_init WF SC_PER_LOC : fr ⊆ fr ⨾  ⦗fun x => ~ Ev.is_init x⦘.
 Proof using.
-unfold Execution.fr.
+unfold Ex.fr.
 rewrite no_co_to_init at 1; try done.
 basic_solver.
 Qed.
 
 Lemma co_from_init WF SC_PER_LOC : 
-  ⦗fun x => is_init x⦘ ⨾ (same_loc \ (fun x y => x = y)) ⨾ ⦗E ∩₁ W⦘ ⊆ co.
+  ⦗fun x => Ev.is_init x⦘ ⨾ (same_loc \ (fun x y => x = y)) ⨾ ⦗E ∩₁ W⦘ ⊆ co.
 Proof using.
 unfolder; ins; desf.
 generalize (init_w WF H); intro Wx.
-generalize (is_w_loc lab x Wx).
-unfold Events.same_loc in *; ins; desf.
+generalize (Ev.is_w_loc lab x Wx).
+unfold Ev.same_loc in *; ins; desf.
 eapply tot_ex.
 - eapply WF.
 - basic_solver.
 - unfolder; splits; try edone.
-  destruct x; [|unfold is_init in *; desf].
+  destruct x; [|unfold Ev.is_init in *; desf].
   eapply (wf_init WF); exists y; splits; eauto.
-  unfold Events.loc in *.
+  unfold Ev.loc in *.
   rewrite (wf_init_lab WF) in *.
   congruence.
 - intro A.
@@ -324,7 +330,7 @@ by basic_solver 12.
 red in COMP; rewrite COMP.
 rewrite (dom_l (wf_rfD WF)) at 1.
 rewrite (dom_l (wf_rfE WF)) at 1.
-rewrite (loceq_same_loc (loceq_rf WF)) at 1.
+rewrite (Ev.loceq_same_loc (loceq_rf WF)) at 1.
 unfolder; ins; desf; eexists; splits; [|edone].
 destruct (classic (x=z)); [eauto|].
 right; eapply tot_ex.
@@ -332,7 +338,7 @@ right; eapply tot_ex.
 - splits; try edone.
 - splits; try edone.
 - intro; eapply A.
-unfold eco, Execution.fr; basic_solver 22.
+unfold eco, Ex.fr; basic_solver 22.
 - congruence. 
 Qed.
 
@@ -347,7 +353,7 @@ by basic_solver 12.
 red in COMP; rewrite COMP.
 rewrite (dom_l (wf_rfD WF)) at 1.
 rewrite (dom_l (wf_rfE WF)) at 1.
-rewrite (loceq_same_loc (loceq_rf WF)) at 1.
+rewrite (Ev.loceq_same_loc (loceq_rf WF)) at 1.
 unfolder; ins; desf; eexists; splits; [edone|].
 (* destruct (classic (x=z)); [eauto|]. *)
 eapply tot_ex.
@@ -372,12 +378,12 @@ by basic_solver 12.
 red in COMP; rewrite COMP.
 rewrite (dom_l (wf_rfD WF)) at 1 2.
 rewrite (dom_l (wf_rfE WF)) at 1 2.
-rewrite (loceq_same_loc (loceq_rf WF)) at 1 2.
+rewrite (Ev.loceq_same_loc (loceq_rf WF)) at 1 2.
 unfolder; ins; desf.
 destruct (classic (z0=z)).
 by right; eexists; subst; eauto.
 left.
-unfold Execution.fr; unfolder.
+unfold Ex.fr; unfolder.
 eexists; splits; [|edone].
 eexists; splits; [edone|].
 eapply tot_ex.
@@ -385,7 +391,7 @@ eapply tot_ex.
 - splits; try edone.
 - unfolder; splits; [done | done | unfolder in *; congruence].
 - intro; eapply A.
-unfold eco, Execution.fr; basic_solver 22.
+unfold eco, Ex.fr; basic_solver 22.
 - intro; subst; eauto.  
 Qed.
 
@@ -451,7 +457,7 @@ eapply (wf_co_total WF); [basic_solver| |].
 { unfolder; ins; desf; splits; eauto.
   apply (wf_rfl WF) in H0.
   apply (wf_rmwl WF) in H1.
-  unfold Events.same_loc in *; congruence. }
+  unfold Ev.same_loc in *; congruence. }
 intro; subst.
 eapply SC_PER_LOC.
 exists y; splits; eauto.
@@ -464,7 +470,7 @@ Proof using.
 arewrite (rf ⨾ rmw ⊆ (rf ⨾ rmw) ∩ (rf ⨾ rmw)).
 rewrite rf_rmw_in_co_helper at 1; eauto.
 rewrite inter_union_l; unionL; [basic_solver|].
-transitivity (fun _ _ : actid => False); [|basic_solver].
+transitivity (fun _ _ : Ev.actid => False); [|basic_solver].
 unfolder; ins; desf.
 eapply SC_PER_LOC.
 exists y; splits; eauto.
@@ -483,7 +489,7 @@ Proof using.
 ins; split; [by apply rf_rmw_in_co|].
 ins; unfolder in *; desf.
 eapply atomicity_alt; try done.
-unfold Execution.fr; basic_solver 10.
+unfold Ex.fr; basic_solver 10.
 Qed.
 
 (******************************************************************************)
@@ -511,9 +517,9 @@ by rewrite fr_in_eco.
 Qed.
 
 Lemma coi_coe WF SC_PER_LOC: 
- ⦗fun x => ~ is_init x⦘ ⨾ coi ⨾ coe ⊆ coe.
+ ⦗fun x => ~ Ev.is_init x⦘ ⨾ coi ⨾ coe ⊆ coe.
 Proof using.
-cut (⦗fun x => ~ is_init x⦘ ⨾ (co ∩ sb) ⨾ (co \ sb) ⊆ co ⨾ co \ sb).
+cut (⦗fun x => ~ Ev.is_init x⦘ ⨾ (co ∩ sb) ⨾ (co \ sb) ⊆ co ⨾ co \ sb).
 by rewrite (co_co WF).
 apply ri_re; try done; try by apply no_co_to_init.
 by apply co_irr.
@@ -560,9 +566,9 @@ unionL.
 - basic_solver 12.
 Qed.
 
-Lemma thread_rfe_sb WF SC_PER_LOC : (rfe^{-1} ⨾ sb) ∩ same_tid ⊆ ∅₂.
+Lemma thread_rfe_sb WF SC_PER_LOC : (rfe^{-1} ⨾ sb) ∩ Ev.same_tid ⊆ ∅₂.
 Proof using.
-ie_unfolder; unfolder; unfold same_tid; ins; desf.
+ie_unfolder; unfolder; unfold Ev.same_tid; ins; desf.
 hahn_rewrite (@wf_sbE G) in H1; unfolder in H1; desf.
 hahn_rewrite (wf_rfE WF) in H; unfolder in H; desf.
 hahn_rewrite (no_rf_to_init WF) in H5; unfolder in H5; desf.
@@ -588,7 +594,7 @@ Lemma rf_sb_loc_w_in_co WF SC_PER_LOC:
   rf ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⊆ co.
 Proof using.
   red. intros w1 w2 [w' [RF HH]]. apply seq_eqv_r in HH as [[SB LOC] W2].
-  forward eapply is_w_loc as [l Ll]; eauto.
+  forward eapply Ev.is_w_loc as [l Ll]; eauto.
   red in LOC. pose proof (wf_rfl WF _ _ RF) as Ll'. red in Ll'.
   eapply same_relation_exp in RF.
   2: { rewrite wf_rfE, wf_rfD; auto. }
@@ -610,3 +616,5 @@ Proof using.
 Qed.
 
 End ECO.
+
+End Execution_eco.

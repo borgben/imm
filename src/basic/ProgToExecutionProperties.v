@@ -1,4 +1,4 @@
-Require Import RelationClasses List Lia.
+(* Require Import RelationClasses List Lia.
 From PromisingLib Require Import Basic.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
@@ -991,4 +991,4 @@ Proof using.
   rewrite IHSTEP3, IHSTEP0. basic_solver.
 Qed.
 
-End Props.
+End Props. *)

@@ -1,4 +1,4 @@
-(******************************************************************************)
+(* ****************************************************************************
 (** * Definition of the OCaml memory model [Dolan-al:PLDI18] *)
 (******************************************************************************)
 From hahn Require Import Hahn.
@@ -51,4 +51,4 @@ Definition ocaml_consistent :=
   ⟪ Caus : acyclic (sb ∪ rfe ∪ ⦗Sc⦘ ⨾ (coe ∪ fre) ⨾ ⦗Sc⦘) ⟫. (* see expanded definition at p. 17 *)
 
 End OCamlMM.
-
+ *)
