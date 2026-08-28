@@ -1,0 +1,6 @@
+{
+    "makefile.configureOnOpen": false,
+    "nixEnvSelector.suggestion": false,
+    "nixEnvSelector.nixFile": "${workspaceFolder}/default.nix",
+    "nixEnvSelector.useFlakes": false
+}

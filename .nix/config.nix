@@ -53,8 +53,8 @@
     coqPackages.sflib.override.version = "master";
     coqPackages.promising-lib.override.version = "1.19.0";
   };
-  bundles."8.19"= {
-    coqPackages.vscoq-language-server.override.version = "v2.2.2";
+  bundles."8.19"= { 
+    coqPackages.vscoq-language-server.override.version = "2.3.4";
     coqPackages.coq.override.version = "8.19";
     coqPackages.hahn.override.version = "1.19.1";
     coqPackages.hahnExt.override.version = "0.9.5";
