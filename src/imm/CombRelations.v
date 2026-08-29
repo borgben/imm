@@ -10,6 +10,7 @@ Require Import Execution_eco.
 Require Import imm_s_hb.
 Require Import imm_s.
 Require Import imm_bob.
+Require Import ImmFair.
 From hahnExt Require Import HahnExt.
 
 
@@ -17,7 +18,8 @@ Set Implicit Arguments.
 
 Module CombRelations (Val : ValueSig) (Ev : Events Val).
 
-Module Import ImmS := imm_s Val Ev.
+Module Import Fair := ImmFair Val Ev.
+Module Import ImmS := Fair.ImmS.
 Module SHb := ImmS.SHbModel.
 Module Import Ppo := ImmS.Ppo.
 Module Import Bob := ImmS.Bob.

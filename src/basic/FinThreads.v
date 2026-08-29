@@ -6,9 +6,10 @@ From hahnExt Require Import HahnExt.
 
 Module FinThreads
     (Val : ValueSig)
-    (Ev : Events Val).
+    (Ev : Events Val)
+    (Ex : ExecutionSig Val Ev).
 
-Module Import Ex := Execution Val Ev.
+Import Ex.
 
 Definition fin_threads (G : execution) := set_finite (Ex.threads_set G).
 

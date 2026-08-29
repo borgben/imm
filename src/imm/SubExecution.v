@@ -23,6 +23,20 @@ Require Import IordCoherency.
 
 Set Implicit Arguments.
 
+Module SubExecution (Val : ValueSig) (Ev : Events Val).
+
+Module Import CR := CombRelations Val Ev.
+Module Import ImmS := CR.ImmS.
+Module Import SHb := CR.SHb.
+Module Import Ppo := CR.Ppo.
+Module Import Bob := CR.Bob.
+Module Import Eco := CR.Eco.
+Module Import Ex := CR.Ex.
+Module Import Fair := Eco.Fair.
+Module Import Fin := Fair.Fin.
+Module Import FT := FinThreads Val Ev Ex.
+Import Ev.
+
 Section SubExecution.
 
 Variables G G' : execution.
@@ -288,7 +302,7 @@ Qed.
 
 Lemma sub_fwbob : fwbob' ≡ ⦗E'⦘ ⨾ fwbob ⨾ ⦗E'⦘.
 Proof using SUB. 
-unfold imm_bob.fwbob; rewrite sub_Rel, sub_AcqRel, sub_W, sub_F, sub_sb, sub_same_loc.
+unfold Bob.fwbob; rewrite sub_Rel, sub_AcqRel, sub_W, sub_F, sub_sb, sub_same_loc.
 basic_solver 21.
 Qed.
 
@@ -297,7 +311,7 @@ Proof using SUB. rewrite sub_fwbob; basic_solver. Qed.
 
 Lemma sub_bob : bob' ≡ ⦗E'⦘ ⨾ bob ⨾ ⦗E'⦘.
 Proof using SUB. 
-unfold imm_bob.bob; rewrite sub_Acq, sub_fwbob, sub_R, sub_sb.
+unfold Bob.bob; rewrite sub_Acq, sub_fwbob, sub_R, sub_sb.
 basic_solver 21.
 Qed.
 
@@ -342,7 +356,7 @@ Qed.
 
 Lemma sub_ppo_in : ppo' ⊆ ppo.
 Proof using SUB.
-unfold imm_s_ppo.ppo.
+unfold Ppo.ppo.
 rewrite sub_W, sub_R.
 hahn_frame; apply inclusion_t_t.
 apply union_mori.
@@ -371,38 +385,38 @@ Qed.
 
 Lemma sub_eco_in : eco' ⊆ eco.
 Proof using SUB.
-unfold Execution_eco.eco.
+unfold Eco.eco.
 rewrite sub_rf_in, sub_co_in, sub_fr_in.
 basic_solver 21.
 Qed.
 
 Lemma sub_rs_in : rs' ⊆ rs.
 Proof using SUB.
-unfold imm_s_hb.rs.
+unfold SHb.rs.
 by rewrite sub_rf_in, sub_rmw_in, sub_sb_in, sub_same_loc, sub_W.
 Qed.
 
 Lemma sub_release_in : release' ⊆ release.
 Proof using SUB.
-unfold imm_s_hb.release.
+unfold SHb.release.
 by rewrite sub_sb_in, sub_rs_in, sub_F, sub_Rel.
 Qed.
 
 Lemma sub_sw_in : sw' ⊆ sw.
 Proof using SUB.
-unfold imm_s_hb.sw.
+unfold SHb.sw.
 by rewrite sub_sb_in, sub_release_in, sub_rf_in, sub_F, sub_Acq.
 Qed.
 
 Lemma sub_hb_in : hb' ⊆ hb.
 Proof using SUB.
-unfold imm_s_hb.hb.
+unfold SHb.hb.
 by rewrite sub_sb_in, sub_sw_in.
 Qed.
 
 Lemma sub_ar_int_in : ar_int' ⊆ ar_int.
 Proof using SUB.
-unfold imm_s_ppo.ar_int.
+unfold Ppo.ar_int.
 rewrite sub_bob_in, sub_ppo_in, sub_detour_in, sub_sb_in.
 rewrite sub_W_ex_acq_in, sub_W.
 rewrite sub_W_ex_in, sub_rfi_in.
@@ -412,19 +426,19 @@ Qed.
 
 Lemma sub_ar_in : ar' sc' ⊆ ar sc.
 Proof using SUB.
-unfold imm_s.ar.
+unfold ImmS.ar.
 by rewrite sub_sc_in, sub_rfe_in, sub_ar_int_in.
 Qed.
 
 Lemma sub_urr_in l : urr' l ⊆ urr l.
 Proof using SUB.
-unfold CombRelations.urr.
+unfold CR.urr.
 by rewrite sub_rf_in, sub_hb_in, (sub_W_ l), sub_F, sub_Sc, sub_sc_in.
 Qed.
 
 Lemma sub_furr_in : furr' ⊆ furr.
 Proof using SUB.
-unfold CombRelations.furr.
+unfold CR.furr.
 unfolder; ins; desf; eexists; apply sub_urr_in; eauto.
 Qed.
 
@@ -563,7 +577,7 @@ Qed.
 
 Lemma sub_eco (RF_A : dom_rel (rf ⨾ ⦗ E' ⦘) ⊆₁ E')  : eco' ≡ ⦗E'⦘ ⨾ eco ⨾ ⦗E'⦘.
 Proof using SUB.
-unfold Execution_eco.eco.
+unfold Eco.eco.
 rewrite (sub_rf SUB), (sub_co SUB), (sub_fr RF_A).
 unfolder in RF_A; basic_solver 21.
 Qed.
@@ -672,3 +686,5 @@ Proof using.
   unfold restrict, threads_bound. simpl.
   ins. apply BOUND, Ge.
 Qed. 
+
+End SubExecution.

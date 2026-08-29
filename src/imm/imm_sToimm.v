@@ -17,53 +17,66 @@ Require Import imm_s_hb_hb.
 
 Set Implicit Arguments.
 
+Module imm_sToimm (Val : ValueSig) (Ev : Events Val).
+
+Module Import ImmS := imm_s Val Ev.
+Module SHb := ImmS.SHbModel.
+Module Import Imm := SHb.Imm.
+Module RHb := Imm.Hb.
+Module Import Ppo := Imm.Ppo.
+Module Import SPpo := ImmS.Ppo.
+Module Import Bob := Imm.Bob.
+Module Import Eco := Imm.Eco.
+Module Import Ex := ImmS.Ex.
+Import Ev.
+
 Section S_IMM_TO_IMM.
 
 Variable G : execution.
 Hypothesis WF : Wf G.
-Hypothesis FINDOM : set_finite G.(acts_set).
+Hypothesis FINDOM : set_finite (Ex.acts_set G).
 
-Notation "'E'" := (acts_set G).
-Notation "'sb'" := (sb G).
-Notation "'rf'" := (rf G).
-Notation "'co'" := (co G).
-Notation "'rmw'" := (rmw G).
-Notation "'data'" := (data G).
-Notation "'addr'" := (addr G).
-Notation "'ctrl'" := (ctrl G).
-Notation "'rmw_dep'" := (rmw_dep G).
+Notation "'E'" := (Ex.acts_set G).
+Notation "'sb'" := (Ex.sb G).
+Notation "'rf'" := (Ex.rf G).
+Notation "'co'" := (Ex.co G).
+Notation "'rmw'" := (Ex.rmw G).
+Notation "'data'" := (Ex.data G).
+Notation "'addr'" := (Ex.addr G).
+Notation "'ctrl'" := (Ex.ctrl G).
+Notation "'rmw_dep'" := (Ex.rmw_dep G).
 
-Notation "'fr'" := (fr G).
-Notation "'eco'" := (eco G).
-Notation "'coe'" := (coe G).
-Notation "'coi'" := (coi G).
-Notation "'deps'" := (deps G).
-Notation "'rfi'" := (rfi G).
-Notation "'rfe'" := (rfe G).
+Notation "'fr'" := (Ex.fr G).
+Notation "'eco'" := (Eco.eco G).
+Notation "'coe'" := (Ex.coe G).
+Notation "'coi'" := (Ex.coi G).
+Notation "'deps'" := (Ex.deps G).
+Notation "'rfi'" := (Ex.rfi G).
+Notation "'rfe'" := (Ex.rfe G).
 
-Notation "'detour'" := (detour G).
+Notation "'detour'" := (Ex.detour G).
 
-Notation "'rs'" := (imm_hb.rs G).
-Notation "'release'" := (imm_hb.release G).
-Notation "'sw'" := (imm_hb.sw G).
-Notation "'hb'" := (imm_hb.hb G).
-Notation "'psc'" := (imm.psc G).
+Notation "'rs'" := (RHb.rs G).
+Notation "'release'" := (RHb.release G).
+Notation "'sw'" := (RHb.sw G).
+Notation "'hb'" := (RHb.hb G).
+Notation "'psc'" := (Imm.psc G).
 
-Notation "'s_rs'" := (imm_s_hb.rs G).
-Notation "'s_release'" := (imm_s_hb.release G).
-Notation "'s_sw'" := (imm_s_hb.sw G).
-Notation "'s_hb'" := (imm_s_hb.hb G).
+Notation "'s_rs'" := (SHb.rs G).
+Notation "'s_release'" := (SHb.release G).
+Notation "'s_sw'" := (SHb.sw G).
+Notation "'s_hb'" := (SHb.hb G).
 
-Notation "'ar_int'" := (ar_int G).
-Notation "'s_ar_int'" := (imm_s_ppo.ar_int G).
-Notation "'ppo'" := (ppo G).
-Notation "'s_ppo'" := (imm_s_ppo.ppo G).
-Notation "'bob'" := (bob G).
+Notation "'ar_int'" := (Ppo.ar_int G).
+Notation "'s_ar_int'" := (SPpo.ar_int G).
+Notation "'ppo'" := (Ppo.ppo G).
+Notation "'s_ppo'" := (SPpo.ppo G).
+Notation "'bob'" := (Bob.bob G).
 
-Notation "'ar'" := (imm.ar G).
-Notation "'s_ar'" := (imm_s.ar G).
+Notation "'ar'" := (Imm.ar G).
+Notation "'s_ar'" := (ImmS.ar G).
 
-Notation "'lab'" := (lab G).
+Notation "'lab'" := (Ex.lab G).
 Notation "'loc'" := (loc lab).
 Notation "'val'" := (val lab).
 Notation "'mod'" := (mod lab).
@@ -76,7 +89,7 @@ Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
 Notation "'R_ex'" := (R_ex lab).
-Notation "'W_ex'" := (W_ex G).
+Notation "'W_ex'" := (Ex.W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Notation "'Pln'" := (fun a => is_true (is_only_pln lab a)).
@@ -87,12 +100,44 @@ Notation "'Acqrel'" := (fun a => is_true (is_acqrel lab a)).
 Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
+Lemma s_rs_in_rs : s_rs ⊆ rs.
+Proof using.
+  unfold SHb.rs, RHb.rs.
+  hahn_frame. rewrite rtE at 1; relsf.
+  apply inclusion_union_l; [rewrite rtE at 1; relsf; basic_solver|].
+  unionR right. arewrite_id ⦗W⦘; rels.
+  arewrite (rf ⨾ rmw ⊆ (sb ∩ same_loc)^? ⨾ rf ⨾ rmw) at 1 by basic_solver 12.
+  rewrite ct_begin. generalize (@sb_same_loc_trans G); ins; rewrite !seqA; relsf.
+  generalize (ct_begin ((sb ∩ same_loc)^? ⨾ rf ⨾ rmw)); basic_solver 40.
+Qed.
+
+Lemma s_release_in_release : s_release ⊆ release.
+Proof using. unfold SHb.release, RHb.release. by rewrite s_rs_in_rs. Qed.
+
+Lemma s_sw_in_sw : s_sw ⊆ sw.
+Proof using.
+  unfold SHb.sw, RHb.sw. rewrite s_release_in_release, rfi_union_rfe.
+  basic_solver 21.
+Qed.
+
+Lemma s_hb_in_hb : s_hb ⊆ hb.
+Proof using. unfold SHb.hb, RHb.hb. by rewrite s_sw_in_sw. Qed.
+
+Lemma coherence_implies_s_coherence (COMP : complete G) :
+  RHb.coherence G -> SHb.coherence G.
+Proof using WF.
+  unfold SHb.coherence. unfolder; ins; desf.
+  eapply RHb.hb_irr; eauto. eapply s_hb_in_hb; edone.
+  unfold RHb.coherence in *; unfolder in *.
+  eapply H; eexists; split; eauto. eapply s_hb_in_hb; edone.
+Qed.
+
 Lemma s_psc_in_psc : ⦗F∩₁Sc⦘ ⨾ s_hb ⨾ eco ⨾ s_hb ⨾ ⦗F∩₁Sc⦘ ⊆ psc.
-Proof using. unfold imm.psc. by rewrite s_hb_in_hb. Qed.
+Proof using. unfold Imm.psc. by rewrite s_hb_in_hb. Qed.
 
 Lemma s_ppo_in_ppo : s_ppo ⊆ ppo.
 Proof using WF.
-  unfold imm_s_ppo.ppo, imm_ppo.ppo.
+  unfold SPpo.ppo, Ppo.ppo.
   assert (rmw ∪ (rmw_dep ⨾ sb^? ∪ ⦗R_ex⦘ ⨾ sb) ⊆
           (rmw ⨾ sb^? ∪ ⦗R_ex⦘ ⨾ sb ∪ rmw_dep)⁺) as AA.
   2: { rewrite !unionA. rewrite AA.
@@ -106,25 +151,25 @@ Proof using WF.
 Qed.
 
 Lemma s_ar_int_in_ar_int : ⦗R⦘ ⨾ s_ar_int⁺ ⨾ ⦗W⦘ ⊆ ⦗R⦘ ⨾ ar_int⁺ ⨾ ⦗W⦘.
-Proof using WF. unfold imm_s_ppo.ar_int, imm_ppo.ar_int. by rewrite s_ppo_in_ppo. Qed.
+Proof using WF. unfold SPpo.ar_int, Ppo.ar_int. by rewrite s_ppo_in_ppo. Qed.
 
-Lemma acyc_ext_implies_s_acyc_ext_helper (AC : imm.acyc_ext G) :
-  imm_s.acyc_ext G (⦗F∩₁Sc⦘ ⨾ s_hb ⨾ eco ⨾ s_hb ⨾ ⦗F∩₁Sc⦘).
+Lemma acyc_ext_implies_s_acyc_ext_helper (AC : Imm.acyc_ext G) :
+  ImmS.acyc_ext G (⦗F∩₁Sc⦘ ⨾ s_hb ⨾ eco ⨾ s_hb ⨾ ⦗F∩₁Sc⦘).
 Proof using WF.
-  unfold imm_s.acyc_ext, imm.acyc_ext in *.
-  unfold imm_s.ar.
+  unfold ImmS.acyc_ext, Imm.acyc_ext in *.
+  unfold ImmS.ar.
   apply s_acyc_ext_psc_helper; auto.
-  unfold imm_s.psc.
+  unfold ImmS.psc.
   rewrite s_psc_in_psc.
   rewrite s_ar_int_in_ar_int.
   arewrite (sb^? ⨾ psc ⨾ sb^? ⊆ ar⁺).
-  { rewrite imm.wf_pscD. rewrite !seqA.
+  { rewrite Imm.wf_pscD. rewrite !seqA.
     arewrite (sb^? ⨾ ⦗F ∩₁ Sc⦘ ⊆ bob^?).
-    { unfold imm_bob.bob, imm_bob.fwbob. mode_solver 10. }
+    { unfold Bob.bob, Bob.fwbob. mode_solver 10. }
     arewrite (⦗F ∩₁ Sc⦘ ⨾ sb^?⊆ bob^?).
-    { unfold imm_bob.bob, imm_bob.fwbob. mode_solver 10. }
+    { unfold Bob.bob, Bob.fwbob. mode_solver 10. }
     arewrite (bob ⊆ ar).
-    { unfold imm.ar, imm_ppo.ar_int. basic_solver 10. }
+    { unfold Imm.ar, Ppo.ar_int. basic_solver 10. }
     arewrite (psc ⊆ ar).
     rewrite ct_step with (r:=ar) at 2. by rewrite ct_cr, cr_ct. }
   arewrite (rfe ⊆ ar).
@@ -134,30 +179,31 @@ Proof using WF.
   red. by rewrite ct_of_ct.
 Qed.
 
-Lemma acyc_ext_implies_s_acyc_ext (AC : imm.acyc_ext G) :
-  exists sc, wf_sc G sc /\ imm_s.acyc_ext G sc /\ coh_sc G sc.
+Lemma acyc_ext_implies_s_acyc_ext (AC : Imm.acyc_ext G) :
+  exists sc, ImmS.wf_sc G sc /\ ImmS.acyc_ext G sc /\ ImmS.coh_sc G sc.
 Proof using WF FINDOM.
-  apply imm_s.s_acyc_ext_helper; auto.
+  apply ImmS.s_acyc_ext_helper; auto.
     by apply acyc_ext_implies_s_acyc_ext_helper.
 Qed.
 
-Lemma imm_consistentimplies_s_imm_consistent (AC : imm.acyc_ext G) :
-  imm.imm_consistent G -> exists sc, imm_s.imm_consistent G sc.
+Lemma imm_consistentimplies_s_imm_consistent (AC : Imm.acyc_ext G) :
+  Imm.imm_consistent G -> exists sc, ImmS.imm_consistent G sc.
 Proof using WF FINDOM.
-  unfold imm_s.imm_consistent, imm.imm_consistent.
+  unfold ImmS.imm_consistent, Imm.imm_consistent.
   ins; desf.
   edestruct acyc_ext_implies_s_acyc_ext as [sc]; auto. desf.
   exists sc; splits; eauto 10 using coherence_implies_s_coherence.
 Qed.
 
 Lemma imm_consistentimplies_s_imm_psc_consistent
-      (IC : imm.imm_consistent G) :
-  exists sc, imm_s.imm_psc_consistent G sc.
+      (IC : Imm.imm_consistent G) :
+  exists sc, ImmS.imm_psc_consistent G sc.
 Proof using WF FINDOM.
   edestruct imm_consistentimplies_s_imm_consistent as [sc]; eauto.
   { apply IC. }
   exists sc. red. splits; auto.
-  unfold psc_f, psc_base, scb. rewrite s_hb_in_hb.
+  unfold ImmS.psc_f, ImmS.psc_base, ImmS.scb.
+  rewrite s_hb_in_hb.
   apply IC.
 Qed.
 
@@ -166,16 +212,16 @@ Lemma imm_consistentimplies_s_imm_psc_consistent_with_fsupp
       (FSUPPSB : fsupp sb) (* NEXT TODO: remove the restriction *)
       (FSUPPRF : fsupp rf) (* NEXT TODO: remove the restriction *)
       (FSUPP : fsupp ar⁺)
-      (IC : imm.imm_consistent G) :
-    ⟪ CONS : imm_s.imm_psc_consistent G ∅₂ ⟫ /\
+      (IC : Imm.imm_consistent G) :
+    ⟪ CONS : ImmS.imm_psc_consistent G ∅₂ ⟫ /\
     ⟪ FSUPP : fsupp (s_ar ∅₂)⁺ ⟫.
 Proof using WF.
   assert (transitive sb) as TSB by apply sb_trans.
   splits.
-  2: { unfold imm_s.ar. rewrite union_false_l.
+  2: { unfold ImmS.ar. rewrite union_false_l.
        rewrite ct_unionE.
        assert (fsupp s_ar_int⁺) as AA.
-       { rewrite imm_s_ppo.ar_int_in_sb; auto.
+       { rewrite SPpo.ar_int_in_sb; auto.
          rewrite ct_of_trans; auto. }
        apply fsupp_union; auto.
        apply fsupp_seq.
@@ -183,7 +229,7 @@ Proof using WF.
        rewrite (wf_rfeD WF), !seqA.
        rewrite ct_rotl, !seqA.
        repeat (apply fsupp_seq); try apply fsupp_eqv.
-       3: { rewrite imm_s_ppo.ar_int_in_sb; auto.
+       3: { rewrite SPpo.ar_int_in_sb; auto.
             rewrite rt_of_trans; auto.
             now apply fsupp_cr. }
        2: now rewrite rfe_in_rf.
@@ -198,16 +244,19 @@ Proof using WF.
        rewrite ct_ct. rewrite rt_of_ct.
        rewrite <- cr_of_ct. now apply fsupp_cr. }
   red. splits.
-  2: { unfold psc_f, psc_base, scb. rewrite s_hb_in_hb.
+  2: { unfold ImmS.psc_f, ImmS.psc_base, ImmS.scb.
+       rewrite s_hb_in_hb.
        apply IC. }
   red. splits; try apply IC.
   { constructor; rewrite ?NOSC.
     all: basic_solver. }
   { red. basic_solver. }
   { cdes IC. apply coherence_implies_s_coherence; auto. }
-  red. unfold imm_s.ar.
+  red. unfold ImmS.ar.
   arewrite (∅₂ ⊆ ⦗F∩₁Sc⦘ ⨾ s_hb ⨾ eco ⨾ s_hb ⨾ ⦗F∩₁Sc⦘).
   apply acyc_ext_implies_s_acyc_ext_helper. apply IC.
 Qed.
 
 End S_IMM_TO_IMM.
+
+End imm_sToimm.

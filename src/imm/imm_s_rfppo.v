@@ -10,49 +10,60 @@ Require Import FairExecution.
 
 Set Implicit Arguments.
 
+Module imm_s_rfppo (Val : ValueSig) (Ev : Events Val).
+
+Module Import Fair := ImmFair Val Ev.
+Module Import ImmS := Fair.ImmS.
+Module SHb := ImmS.SHbModel.
+Module Import Ppo := ImmS.Ppo.
+Module Import Bob := ImmS.Bob.
+Module Import Eco := ImmS.Eco.
+Module Import Ex := ImmS.Ex.
+Import Ev.
+
 Section ImmRFRMWPPO.
 
   Variable G : execution.
   Variable WF : Wf G.
   Variable COM : complete G.
-  Variable sc : relation actid.
-  Variable IMMCON : imm_consistent G sc.
-  Variable WFSC : wf_sc G sc.
+  Variable sc : relation Ev.actid.
+  Variable IMMCON : ImmS.imm_consistent G sc.
+  Variable WFSC : ImmS.wf_sc G sc.
 
-  Notation "'sb'" := (sb G).
-  Notation "'rmw'" := (rmw G).
-  Notation "'data'" := (data G).
-  Notation "'addr'" := (addr G).
-  Notation "'ctrl'" := (ctrl G).
-  Notation "'rf'" := (rf G).
-  Notation "'co'" := (co G).
-  Notation "'coe'" := (coe G).
-  Notation "'fr'" := (fr G).
+  Notation "'sb'" := (Ex.sb G).
+  Notation "'rmw'" := (Ex.rmw G).
+  Notation "'data'" := (Ex.data G).
+  Notation "'addr'" := (Ex.addr G).
+  Notation "'ctrl'" := (Ex.ctrl G).
+  Notation "'rf'" := (Ex.rf G).
+  Notation "'co'" := (Ex.co G).
+  Notation "'coe'" := (Ex.coe G).
+  Notation "'fr'" := (Ex.fr G).
 
-  Notation "'eco'" := (eco G).
+  Notation "'eco'" := (Eco.eco G).
 
-  Notation "'bob'" := (bob G).
-  Notation "'fwbob'" := (fwbob G).
-  Notation "'ppo'" := (ppo G).
-  Notation "'fre'" := (fre G).
-  Notation "'rfi'" := (rfi G).
-  Notation "'rfe'" := (rfe G).
-  Notation "'deps'" := (deps G).
-  Notation "'detour'" := (detour G).
-  Notation "'release'" := (release G).
-  Notation "'sw'" := (sw G).
-  Notation "'hb'" := (hb G).
+  Notation "'bob'" := (Bob.bob G).
+  Notation "'fwbob'" := (Bob.fwbob G).
+  Notation "'ppo'" := (Ppo.ppo G).
+  Notation "'fre'" := (Ex.fre G).
+  Notation "'rfi'" := (Ex.rfi G).
+  Notation "'rfe'" := (Ex.rfe G).
+  Notation "'deps'" := (Ex.deps G).
+  Notation "'detour'" := (Ex.detour G).
+  Notation "'release'" := (SHb.release G).
+  Notation "'sw'" := (SHb.sw G).
+  Notation "'hb'" := (SHb.hb G).
 
-  Notation "'ar'" := (ar G sc).
-  Notation "'ar_int'" := (ar_int G).
+  Notation "'ar'" := (ImmS.ar G sc).
+  Notation "'ar_int'" := (Ppo.ar_int G).
 
-Notation "'lab'" := (lab G).
+Notation "'lab'" := (Ex.lab G).
 Notation "'loc'" := (loc lab).
 Notation "'val'" := (val lab).
-Notation "'mod'" := (Events.mod lab).
+Notation "'mod'" := (Ev.mod lab).
 Notation "'same_loc'" := (same_loc lab).
 
-Notation "'E'" := (acts_set G).
+Notation "'E'" := (Ex.acts_set G).
 Notation "'R'" := (fun x => is_true (is_r lab x)).
 Notation "'W'" := (fun x => is_true (is_w lab x)).
 Notation "'F'" := (fun x => is_true (is_f lab x)).
@@ -60,7 +71,7 @@ Notation "'RW'" := (R ∪₁ W).
 Notation "'FR'" := (F ∪₁ R).
 Notation "'FW'" := (F ∪₁ W).
 Notation "'R_ex'" := (fun a => is_true (R_ex lab a)).
-Notation "'W_ex'" := (W_ex G).
+Notation "'W_ex'" := (Ex.W_ex G).
 Notation "'W_ex_acq'" := (W_ex ∩₁ (fun a => is_true (is_xacq lab a))).
 
 Notation "'Init'" := (fun a => is_true (is_init a)).
@@ -101,7 +112,7 @@ Proof using WF.
   { rewrite (dom_l (wf_rfiD WF)).
     rewrite (dom_r (wf_rfeD WF)).
     type_solver. }
-  unfold imm_s_ppo.ar_int at 1.
+  unfold Ppo.ar_int at 1.
   rewrite !seq_union_l.
   unionL.
   5: by rewrite (dom_l (wf_rfiD WF)); type_solver.
@@ -130,7 +141,7 @@ Qed.
 Lemma ar_rf_ppo_loc_in_ar_ct :
   ar ⨾ rf ⨾ ppo ∩ same_loc ⊆ ar⁺.
 Proof using WF IMMCON.
-  unfold imm_s.ar.
+  unfold ImmS.ar.
   rewrite unionA, seq_union_l.
   unionL.
   { rewrite wf_scD with (sc:=sc) at 1; [|by apply IMMCON].
@@ -158,7 +169,7 @@ Proof using WF COM IMMCON.
   split.
   2: { red. rewrite ct_of_ct. apply IMMCON. }
   rewrite ppo_loc_in_fr; auto.
-  2: { apply coherence_sc_per_loc. by apply IMMCON. }
+  2: { apply SHb.coherence_sc_per_loc. by apply IMMCON. }
   rewrite rf_fr; auto. by apply co_acyclic.
 Qed.
 
@@ -196,8 +207,8 @@ Proof using WF IMMCON.
 Qed.
 
 Lemma fsupp_ar_implies_fsupp_ar_rf_ppo_loc
-      (FAIR : mem_fair G)
-      (IMM_FAIR   : imm_s_fair G sc) :
+      (FAIR : Fair.FairEx.mem_fair G)
+      (IMM_FAIR   : Fair.imm_s_fair G sc) :
   fsupp (⦗set_compl is_init⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc)⁺).
 Proof using WF COM IMMCON.  
   rewrite ct_unionE.
@@ -208,7 +219,7 @@ Proof using WF COM IMMCON.
   rewrite ct_of_ct.
   assert (fsupp (rf ⨾ ppo ∩ same_loc)⁺) as AA.
   { rewrite ppo_loc_in_fr; auto.
-    2: { apply coherence_sc_per_loc. by apply IMMCON. }
+    2: { apply SHb.coherence_sc_per_loc. by apply IMMCON. }
     rewrite rf_fr; auto. 
     rewrite ct_of_trans; [apply FAIR| apply WF]. }
 
@@ -225,11 +236,11 @@ Qed.
 
 (* Lemma fsupp_ar_rf_ppo_loc (FINDOM : set_finite E) : *)
 (*   fsupp (ar ∪ rf ⨾ ppo ∩ same_loc)⁺. *)
-Lemma fsupp_ar_rf_ppo_loc_fin (FIN : fin_exec G):
+Lemma fsupp_ar_rf_ppo_loc_fin (FIN : Fair.FinEx.fin_exec G):
   fsupp (⦗set_compl is_init⦘ ⨾ (ar ∪ rf ⨾ ppo ∩ same_loc)⁺).
 Proof using WFSC WF IMMCON COM.
   apply fsupp_ar_implies_fsupp_ar_rf_ppo_loc; 
-    auto using fin_exec_fair, fin_exec_imm_s_fair. 
+    auto using Fair.FairEx.fin_exec_fair, Fair.fin_exec_imm_s_fair. 
 Qed.
 
 Lemma wf_ar_rf_ppo_loc_ct
@@ -248,7 +259,7 @@ Lemma ar_rf_ppo_loc_in_sb_rf_no_f_sc
       (NOSC : E ∩₁ F ∩₁ Sc ⊆₁ ∅) :
   ar ∪ rf ⨾ ppo ∩ same_loc ⊆ (sb ∪ rf)⁺.
 Proof using WF WFSC.
-  unfold imm_s.ar. rewrite ar_int_in_sb; auto.
+  unfold ImmS.ar. rewrite ar_int_in_sb; auto.
   arewrite_false sc.
   { rewrite (dom_l (wf_scE WFSC)).
     rewrite (dom_l (wf_scD WFSC)).
@@ -273,17 +284,19 @@ Qed.
 
 
 Lemma wf_ar_rf_ppo_loc_ct_inf_imm_s
-      (FAIR: mem_fair G)
-      (IMM_CONS: imm_s.imm_consistent G sc)
-      (IMM_FAIR: imm_s_fair G sc):
+      (FAIR: Fair.FairEx.mem_fair G)
+      (IMM_CONS: ImmS.imm_consistent G sc)
+      (IMM_FAIR: Fair.imm_s_fair G sc):
   well_founded (⦗set_compl is_init⦘ ⨾ (ar ∪ rf ;; ppo ∩ same_loc)⁺).
 Proof using WF COM IMMCON.
-  apply wf_ar_rf_ppo_loc_ct_inf_helper; auto. 
+  apply Fair.wf_ar_rf_ppo_loc_ct_inf_helper; auto. 
   { by apply ar_rf_ppo_loc_acyclic. }
   { by apply no_ar_rf_ppo_loc_to_init. }
-  { by apply imm_s_ppo.ppo_in_sb. }
+  { by apply Ppo.ppo_in_sb. }
   { by apply ar_rf_ppo_loc_ct_in_ar_ct. }
-  cdes IMM_CONS. by apply imm_s_hb.coherence_sc_per_loc.
+  cdes IMM_CONS. by apply SHb.coherence_sc_per_loc.
 Qed. 
 
 End ImmRFRMWPPO.
+
+End imm_s_rfppo.

@@ -2,23 +2,34 @@
 Require Import Events.
 Require Import Execution.
 Require Import Execution_eco.
-Require Import imm_hb imm_bob imm imm_ppo. 
+Require Import imm_hb imm_bob imm imm_ppo.
 From hahn Require Import Hahn.
 Require Import ImmFair.
 Require Import FairExecution. 
 
+Module imm_rfppo (Val : ValueSig) (Ev : Events Val).
+
+Module Import Fair := ImmFair Val Ev.
+Module Import FairEx := Fair.FairEx.
+Module Import Imm := Fair.Imm.
+Module Import Hb := Imm.Hb.
+Module Import Ppo := Imm.Ppo.
+Module Import Bob := Imm.Bob.
+Module Import Eco := Imm.Eco.
+Module Import Ex := Fair.Ex.
+Import Ev.
 
 Section ImmRfPpo.
   (* TODO: unify with lemmas for imm_s *)
-  Variable G: execution.
-  Hypothesis WF: Wf G.
-  Hypothesis COM: complete G. 
+  Variable G : FairEx.Ex.execution.
+  Hypothesis WF : FairEx.Ex.Wf G.
+  Hypothesis COM : FairEx.Ex.complete G.
 
 
   Lemma IMM_ar_int_rfe_rf_ppo_loc_in_ar_int_rfe_ct :
-    (rfe G ∪ imm_ppo.ar_int G) ⨾ rf G ⨾ (ppo G ∩ same_loc (lab G)) ⊆ (rfe G ∪ imm_ppo.ar_int G)⁺.
+    (rfe G ∪ Ppo.ar_int G) ⨾ rf G ⨾ (ppo G ∩ same_loc (lab G)) ⊆ (rfe G ∪ Ppo.ar_int G)⁺.
   Proof using WF.
-    remember (rfe G ∪ imm_ppo.ar_int G) as ax.
+    remember (rfe G ∪ Ppo.ar_int G) as ax.
     assert (sb G ⨾ sb G ⊆ sb G) as AA.
     { apply transitiveI. apply sb_trans. }
     
@@ -30,7 +41,7 @@ Section ImmRfPpo.
     unionL.
     2: { arewrite (ppo G ∩ same_loc (lab G) ⊆ ppo G).
          rewrite ppo_in_ar_int.
-         arewrite (rfe G ⨾ imm_ppo.ar_int G ⊆ ax  ⨾ ax).
+         arewrite (rfe G ⨾ Ppo.ar_int G ⊆ ax  ⨾ ax).
          { subst ax. basic_solver 10. }
          arewrite (ax ⊆ ax⁺) at 1.
          arewrite (ax ⊆ ax⁺) at 2. by rewrite ct_unit, ct_ct. }
@@ -40,7 +51,7 @@ Section ImmRfPpo.
     { rewrite (dom_l (wf_rfiD WF)).
       rewrite (dom_r (wf_rfeD WF)).
       type_solver. }
-    unfold imm_ppo.ar_int at 1.
+    unfold Ppo.ar_int at 1.
     rewrite !seq_union_l.
     unionL.
     5: by rewrite (dom_l (wf_rfiD WF)); type_solver.
@@ -69,7 +80,7 @@ Section ImmRfPpo.
   Lemma IMM_ar_rf_ppo_loc_in_ar_ct :
     ar G ⨾ rf G ⨾ ppo G ∩ same_loc (lab G) ⊆ (ar G)⁺.
   Proof using WF.
-    unfold imm.ar.
+    unfold Imm.ar.
     rewrite unionA, seq_union_l.
     unionL.
     { rewrite wf_pscD, wf_rfD; auto. type_solver. }
@@ -166,3 +177,5 @@ Section ImmRfPpo.
   Qed. 
 
 End ImmRfPpo. 
+
+End imm_rfppo.

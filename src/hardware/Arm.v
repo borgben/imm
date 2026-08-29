@@ -10,11 +10,12 @@ Require Import Execution_eco.
 
 Set Implicit Arguments.
 
-Module Arm
+Module ArmWithEco
     (Val : ValueSig)
-    (Ev : Events Val).
+    (Ev : Events Val)
+    (Eco : Execution_ecoSig Val Ev).
 
-Module Import Eco := Execution_eco Val Ev.
+Import Eco.
 Module Import Ex := Eco.Ex.
 
 Section ArmDefs.
@@ -571,4 +572,11 @@ Qed.
 
 End ArmDefs.
 
-End Arm. 
+End ArmWithEco.
+
+Module Arm
+    (Val : ValueSig)
+    (Ev : Events Val).
+  Module Eco := Execution_eco Val Ev.
+  Include ArmWithEco Val Ev Eco.
+End Arm.

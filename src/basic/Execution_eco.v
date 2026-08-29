@@ -7,6 +7,7 @@ From hahn Require Import Hahn.
 
 Require Import Events.
 Require Import Execution.
+Require Import FairExecution.
 
 Set Implicit Arguments.
 
@@ -14,7 +15,8 @@ Module Execution_eco
     (Val : ValueSig)
     (Ev : Events Val).
 
-Module Import Ex := Execution Val Ev.
+Module Import Fair := FairExecution Val Ev.
+Module Import Ex := Fair.Ex.
 
 Section ECO.
 Variable G : execution.
@@ -618,3 +620,9 @@ Qed.
 End ECO.
 
 End Execution_eco.
+
+Module Type Execution_ecoSig
+    (Val : ValueSig)
+    (Ev : Events Val).
+  Include Execution_eco Val Ev.
+End Execution_ecoSig.

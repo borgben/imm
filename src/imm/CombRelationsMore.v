@@ -4,10 +4,18 @@ Require Import Events.
 Require Import Execution.
 Require Import imm_s_hb.
 Require Import imm_s.
-Require Import CombRelations. 
+Require Import CombRelations.
 From hahnExt Require Import HahnExt. 
 
 Set Implicit Arguments.
+
+Module CombRelationsMore (Val : ValueSig) (Ev : Events Val).
+
+Module Import CR := CombRelations Val Ev.
+Module Import ImmS := CR.ImmS.
+Module Import SHb := CR.SHb.
+Module Import Ex := CR.Ex.
+Import Ev.
 
 Section CombRelationsMore.
 
@@ -418,5 +426,7 @@ Proof using.
   exfalso; eapply COVSTEP; basic_solver.
 Qed.
 
+
+End CombRelationsMore.
 
 End CombRelationsMore.

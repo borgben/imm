@@ -10,12 +10,14 @@ Require Import Execution.
 Require Import Execution_eco.
 Require Import imm_bob.
 Require Import imm_hb.
+Require Import imm.
 
 Set Implicit Arguments.
 
 Module imm_s_hb (Val : ValueSig) (Ev : Events Val).
 
-Module Import Hb := imm_hb Val Ev.
+Module Import Imm := Imm Val Ev.
+Module Import Hb := Imm.Hb.
 Module Import Bob := Hb.Bob.
 Module Import Eco := Bob.Eco.
 Module Import Ex := Hb.Ex.

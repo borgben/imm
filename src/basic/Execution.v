@@ -1313,3 +1313,9 @@ Hint Unfold rfe coe fre rfi coi fri : ie_unfolderDb.
 Tactic Notation "ie_unfolder" := repeat autounfold with ie_unfolderDb in *.
 
 End Execution.
+
+Module Type ExecutionSig
+    (Val : ValueSig)
+    (Ev : Events Val).
+  Include Execution Val Ev.
+End ExecutionSig.

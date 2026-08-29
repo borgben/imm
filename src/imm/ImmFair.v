@@ -8,33 +8,44 @@ From hahn Require Import Hahn.
 Require Import FinExecution.
 
 
-Definition imm_fair G := fsupp (⦗set_compl is_init⦘ ⨾ (imm.ar G)⁺).
-Definition imm_s_fair G sc := fsupp (⦗set_compl is_init⦘ ⨾ (imm_s.ar G sc)⁺).
+Module ImmFair (Val: ValueSig) (Ev:Events Val).
+Module Import ImmS := imm_s Val Ev.
+Module Imm := ImmS.SHbModel.Imm.
+Module Import Ex := ImmS.Ex.
+Module Import FairEx := ImmS.Eco.Fair.
+Module Import FinEx := FairEx.Fin.
+
+
+Definition imm_fair (G : Imm.Ex.execution) :=
+  fsupp (⦗set_compl Ev.is_init⦘ ⨾ (Imm.ar G)⁺).
+Definition imm_s_fair G sc := fsupp (⦗set_compl Ev.is_init⦘ ⨾ (ImmS.ar G sc)⁺).
 
 
 Section ImmFairProperties.
 
-  Variables G : execution.
-  Variables sc : relation actid.
+  Variable G: execution.  
+  Variables sc : relation Ev.actid.
   Hypothesis WF: Wf G.
-  Hypothesis WFSC: wf_sc G sc.
+  Hypothesis WFSC: ImmS.wf_sc G sc.
   Hypothesis COM: complete G. 
-  Hypothesis FAIR: mem_fair G.
+  Hypothesis FAIR: mem_fair G. 
 
-  Notation "'E'" := (acts_set G).
-  Notation "'R'" := (fun x => is_true (is_r (lab G) x)).
-  Notation "'W'" := (fun x => is_true (is_w (lab G) x)).
-  Notation "'F'" := (fun x => is_true (is_f (lab G) x)).
+  Notation "'E'" := (Ex.acts_set G).
+  Notation "'R'" := (fun x => is_true (Ev.is_r (Ex.lab G) x)).
+  Notation "'W'" := (fun x => is_true (Ev.is_w (Ex.lab G) x)).
+  Notation "'F'" := (fun x => is_true (Ev.is_f (Ex.lab G) x)).
   
-  Lemma fsupp_rf_sb_loc: fsupp (rf G ⨾ sb G ∩ same_loc (lab G)).
+  Lemma fsupp_rf_sb_loc:
+    fsupp (Ex.rf G ⨾ Ex.sb G ∩ Ev.same_loc (Ex.lab G)).
   Proof using WF FAIR. 
     apply fsupp_seq; auto using fsupp_rf, fsupp_sb_loc.
   Qed.
 
-  Lemma fsupp_rf_sb_loc_ct (SCpL: sc_per_loc G):
-    fsupp (rf G ⨾ sb G ∩ same_loc (lab G))⁺.
+  Lemma fsupp_rf_sb_loc_ct (SCpL: ImmS.Eco.sc_per_loc G):
+    fsupp (Ex.rf G ⨾ Ex.sb G ∩ Ev.same_loc (Ex.lab G))⁺.
   Proof using FAIR WF.
-    eapply fsupp_mori with (x := (co G)^* ⨾ rf G ⨾ sb G ∩ same_loc (lab G)).
+    eapply fsupp_mori with
+      (x := (Ex.co G)^* ⨾ Ex.rf G ⨾ Ex.sb G ∩ Ev.same_loc (Ex.lab G)).
     2: { apply fsupp_seq; [| by apply fsupp_rf_sb_loc].
          apply fsupp_ct_rt. rewrite ct_of_trans; [| by apply WF].
          apply FAIR. }
@@ -42,11 +53,11 @@ Section ImmFairProperties.
     rewrite ctEE. apply inclusion_bunion_l. intros i _. induction i.
     { simpl. apply seq_mori; basic_solver. }
     rewrite pow_S_end. rewrite IHi.
-    arewrite (rf G ≡ ⦗W⦘ ⨾ rf G) at 2.
+    arewrite (Ex.rf G ≡ ⦗W⦘ ⨾ Ex.rf G) at 2.
     { rewrite wf_rfD; basic_solver. }
     hahn_frame.
     etransitivity; [| apply inclusion_t_rt]. rewrite ct_end. hahn_frame_l.
-    apply rf_sb_loc_w_in_co; auto.
+    apply ImmS.Eco.rf_sb_loc_w_in_co; auto.
   Qed.
 
   Lemma clos_trans_domb_begin {A: Type} (r: relation A) (s: A -> Prop)
@@ -59,14 +70,15 @@ Section ImmFairProperties.
     rewrite inclusion_seq_eqv_r. basic_solver.
   Qed. 
 
-  Lemma wf_ar_rf_ppo_loc_ct_inf_helper (r_ar r_ppo: relation actid)
-        (R_RFPPO_AC: acyclic (r_ar ∪ rf G ⨾ r_ppo ∩ same_loc (lab G)))
-        (R_RFPPO_NI: (r_ar ∪ rf G ⨾ r_ppo ∩ same_loc (lab G)) ⨾ ⦗is_init⦘ ≡ ∅₂)
-        (FSUPPr: fsupp (⦗set_compl is_init⦘ ⨾ r_ar⁺))
-        (R_PPO_SB: r_ppo ⊆ sb G)
-        (R_RFPPO_CLOS: r_ar ⨾ (rf G ⨾ r_ppo ∩ same_loc (lab G))⁺ ⊆ r_ar⁺)
-        (SCpL: sc_per_loc G):
-    well_founded (⦗set_compl is_init⦘ ⨾ (r_ar ∪ rf G ;; r_ppo ∩ same_loc (lab G))⁺).
+  Lemma wf_ar_rf_ppo_loc_ct_inf_helper (r_ar r_ppo: relation Ev.actid)
+        (R_RFPPO_AC: acyclic (r_ar ∪ Ex.rf G ⨾ r_ppo ∩ Ev.same_loc (Ex.lab G)))
+        (R_RFPPO_NI: (r_ar ∪ Ex.rf G ⨾ r_ppo ∩ Ev.same_loc (Ex.lab G)) ⨾ ⦗Ev.is_init⦘ ≡ ∅₂)
+        (FSUPPr: fsupp (⦗set_compl Ev.is_init⦘ ⨾ r_ar⁺))
+        (R_PPO_SB: r_ppo ⊆ Ex.sb G)
+        (R_RFPPO_CLOS: r_ar ⨾ (Ex.rf G ⨾ r_ppo ∩ Ev.same_loc (Ex.lab G))⁺ ⊆ r_ar⁺)
+        (SCpL: ImmS.Eco.sc_per_loc G):
+    well_founded (⦗set_compl Ev.is_init⦘ ⨾
+      (r_ar ∪ Ex.rf G ;; r_ppo ∩ Ev.same_loc (Ex.lab G))⁺).
   Proof using WF FAIR COM. 
     apply fsupp_well_founded.
     3: { generalize transitive_ct. basic_solver. }
@@ -104,29 +116,32 @@ Section ImmFairProperties.
     fsupp sc. 
   Proof using WF WFSC. 
     eapply fsupp_mori; [| by apply IMM_FAIR].
-    red. rewrite <- ct_step. unfold ar. do 2 rewrite <- inclusion_union_r1.
+    red. rewrite <- ct_step. unfold ImmS.ar. do 2 rewrite <- inclusion_union_r1.
     apply doma_helper. inversion WFSC. rewrite wf_scD.
     red. intros ? ? ?%seq_eqv_lr.
-    eapply read_or_fence_is_not_init; eauto. type_solver. 
+    eapply Ex.read_or_fence_is_not_init; eauto. type_solver. 
+    exact WFSC.
   Qed. 
 End ImmFairProperties.
 
-Lemma fin_exec_imm_s_fair G sc (WF: Wf G) (WFSC: wf_sc G sc)
-      (FIN: fin_exec G):
+Lemma fin_exec_imm_s_fair G sc (WF: Ex.Wf G) (WFSC: ImmS.wf_sc G sc)
+      (FIN: FinEx.fin_exec G):
   imm_s_fair G sc. 
 Proof using. 
   red. red in FIN.
   eapply fsupp_mori.
   2: { eapply fsupp_cross with (s' := set_full); eauto. }
-  red. rewrite ct_begin, wf_arE; auto. basic_solver.  
+  red. rewrite ct_begin, ImmS.wf_arE; auto. basic_solver.  
 Qed. 
 
-Lemma fin_exec_imm_fair G (WF: Wf G)
-      (FIN: fin_exec G):
+Lemma fin_exec_imm_fair G (WF: Imm.Ex.Wf G)
+      (FIN: Imm.Eco.Fair.Fin.fin_exec G):
   imm_fair G. 
 Proof using. 
   red. red in FIN.
   eapply fsupp_mori.
   2: { eapply fsupp_cross with (s' := set_full); eauto. }
-  red. rewrite ct_begin, imm.wf_arE; auto. basic_solver.  
+  red. rewrite ct_begin, Imm.wf_arE; auto. basic_solver.  
 Qed. 
+
+End ImmFair.

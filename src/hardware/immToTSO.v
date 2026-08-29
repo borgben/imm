@@ -294,7 +294,7 @@ Qed.
 Lemma psct : psc ⊆ sb ∪ sb ⨾ hbt⁺ ⨾ sb.
 Proof using CON.
 generalize (@sb_trans G); ins.
-unfold imm.psc.
+unfold Imm.psc.
 rewrite (wf_ecoD WF), !seqA.
 rewrite eco_in.
 rewrite hb_in.
@@ -373,7 +373,7 @@ Proof using CON. apply (ct_pscXt psct). by rewrite (@wf_pscD G) at 1. Qed.
 
 Lemma psc_ft : psc_f ⊆ sb ∪ sb ⨾ hbt⁺ ⨾ sb.
 Proof using CON.
-  unfold imm.psc_f.
+  unfold Imm.psc_f.
   rewrite crE.
   rewrite !seq_union_l, !seq_union_r, !seq_id_l, !seqA.
   unionL.
@@ -395,14 +395,14 @@ Lemma ct_psc_ft :
        sb^? ⨾ ⦗MFENCE⦘ ⨾ (sb ∪ sb ⨾ hbt⁺ ⨾ sb) ⨾ ⦗MFENCE⦘ ⨾ sb^?.
 Proof using CON.
   apply (ct_pscXt psc_ft).
-  unfold imm.psc_f. rewrite !seqA.
+  unfold Imm.psc_f. rewrite !seqA.
   basic_solver 10.
 Qed.
 
 (* Lemma psc_baset : psc_base ⊆ sb ∪ sb^? ⨾ hbt⁺ ⨾ sb^?. *)
 (* Proof using. *)
-(*   unfold imm.psc_base. *)
-(*   unfold imm.scb. *)
+(*   unfold Imm.psc_base. *)
+(*   unfold Imm.scb. *)
 (*   arewrite (sb ∪ (sb \ same_loc) ⨾ hb ⨾ (sb \ same_loc) ∪ hb ∩ same_loc ⊆ *)
 (*                hb). *)
 (*   { rewrite sb_in_hb. *)
@@ -528,14 +528,14 @@ Qed.
 Lemma wf_psc_baseD : psc_base ≡ ⦗Sc⦘ ⨾ psc_base ⨾ ⦗Sc⦘.
 Proof using.
   split; [|basic_solver].
-  unfold imm.psc_base.
+  unfold Imm.psc_base.
   basic_solver 42.
 Qed.
 
 Lemma wf_psc_fD : psc_f ≡ ⦗Sc⦘ ⨾ psc_f ⨾ ⦗Sc⦘.
 Proof using.
   split; [|basic_solver].
-  unfold imm.psc_f.
+  unfold Imm.psc_f.
   basic_solver 42.
 Qed.
 
@@ -681,7 +681,7 @@ Proof using CON.
     by type_solver 10.
   assert (hbt ⨾ ⦗RW⦘ ⊆ (hbt ⨾ ⦗RW⦘)＊) as FF.
   { red. ins. apply rt_step; eauto. }
-  unfold imm.psc_f.
+  unfold Imm.psc_f.
   rewrite crE.
   rewrite !seq_union_l, !seq_union_r, seq_id_l, !seqA.
   unionL.
@@ -819,14 +819,14 @@ Proof using CON.
   assert (hb ⨾ hb ⨾ hb ⊆ hb) as HBA.
   { generalize (@hb_trans G). basic_solver. }
   assert (scb ⊆ hb ∪ co ∪ fr) as HBB.
-  { unfold imm.scb.
+  { unfold Imm.scb.
     arewrite (sb \ same_loc ⊆ sb).
     rewrite sb_in_hb.
     rewrite HBA.
     unionL; eauto with hahn. }
   assert (scb ⊆ hb ∪ eco) as HBECO.
   { rewrite HBB. rewrite co_in_eco, fr_in_eco. eauto with hahn. }
-  unfold imm.psc_base.
+  unfold Imm.psc_base.
   rewrite !crE.
   rewrite !seq_union_l, !seq_union_r, !seq_id_l, !seqA.
   assert (⦗Sc⦘ ⨾ ⦗F⦘ ⊆ ⦗MFENCE⦘) as SCFM by basic_solver.
@@ -839,7 +839,7 @@ Proof using CON.
        { rewrite !seq_union_l, !seq_union_r.
          rewrite HBA. basic_solver 10. }
        apply psc_f_in_ehbt. }
-  { unfold imm.scb.
+  { unfold Imm.scb.
     rewrite !seq_union_l, !seq_union_r.
     unionL; auto.
     { arewrite (sb \ same_loc ⊆ sb).

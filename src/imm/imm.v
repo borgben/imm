@@ -14,7 +14,7 @@ Require Import imm_ppo.
 
 Set Implicit Arguments.
 
-Module imm (Val : ValueSig) (Ev : Events Val).
+Module Imm (Val : ValueSig) (Ev : Events Val).
 
 Module Import Ppo := imm_ppo Val Ev.
 Module Import Hb := Ppo.Hb.
@@ -474,4 +474,4 @@ Qed.
 
 End ImmDefs.
 
-End imm.
+End Imm.

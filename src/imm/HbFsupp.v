@@ -19,6 +19,18 @@ From imm Require Import imm_s_hb.
 Require Import FairExecution. 
 Require Import FinThreads.
 
+Module HbFsupp (Val : ValueSig) (Ev : Events Val).
+
+Module Import CR := CombRelations Val Ev.
+Module Import ImmS := CR.ImmS.
+Module Import SHb := CR.SHb.
+Module Import Eco := CR.Eco.
+Module Import Ex := CR.Ex.
+Module Import Fair := Eco.Fair.
+Module Import Fin := Fair.Fin.
+Module Import FT := FinThreads Val Ev Ex.
+Import Ev.
+
 Section HbFsupp.
   Variable (G: execution) (sc: relation actid). 
   Hypothesis (WF: Wf G) (IMMCON: imm_consistent G sc).
@@ -29,7 +41,7 @@ Section HbFsupp.
   Proof using WF IMMCON FAIR.
     assert (sc_per_loc G) as SCPL.
     { apply coherence_sc_per_loc, IMMCON. }
-    unfold imm_s_hb.rs.
+    unfold SHb.rs.
     rewrite <- !seqA.
     apply fsupp_seq.
     2: { rewrite rf_rmw_in_co; auto.
@@ -43,7 +55,7 @@ Section HbFsupp.
   Lemma fsupp_release : fsupp (release G).
   Proof using WF IMMCON FAIR. 
     rewrite no_release_from_init; auto. 
-    unfold imm_s_hb.release.
+    unfold SHb.release.
     rewrite inclusion_seq_eqv_l with (dom := is_rel _).
     eapply fsupp_mori.
     2: { apply fsupp_seq with (r1 := ⦗set_compl is_init⦘ ⨾ (sb G)^?).
@@ -54,7 +66,7 @@ Section HbFsupp.
     
   Lemma fsupp_sw : fsupp (sw G).
   Proof using WF IMMCON FAIR.
-    unfold imm_s_hb.sw.
+    unfold SHb.sw.
     rewrite (no_rf_to_init WF).
     rewrite !seqA. rewrite <- seqA with (r2 := rf G). 
     apply fsupp_seq.
@@ -67,7 +79,7 @@ Section HbFsupp.
   Proof using TB WF IMMCON FAIR.
     rewrite (dom_l (wf_hbE WF)), <- !seqA.
     rewrite <- id_inter, set_interC, <- set_minusE.
-    unfold imm_s_hb.hb.
+    unfold SHb.hb.
     rewrite clos_trans_domb_l_strong.
     2: { rewrite no_sb_to_init, no_sw_to_init, wf_sbE, wf_swE; basic_solver. }
     rewrite inclusion_seq_eqv_r. 
@@ -119,3 +131,5 @@ Section HbFsupp.
   Qed.
   
 End HbFsupp. 
+
+End HbFsupp.

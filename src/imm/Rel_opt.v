@@ -6,16 +6,13 @@ Require Import Classical Peano_dec.
 From hahn Require Import Hahn.
 
 Require Import Events Execution Execution_eco.
-Require Import imm_bob.
-Require Import imm_ppo.
-Require Import imm_hb.
 Require Import imm.
 
 Set Implicit Arguments.
 
 Module Rel_opt (Val : ValueSig) (Ev : Events Val).
 
-Module Import Imm := imm Val Ev.
+Module Import Imm := Imm Val Ev.
 Module Import Ppo := Imm.Ppo.
 Module Import Hb := Ppo.Hb.
 Module Import Bob := Hb.Bob.

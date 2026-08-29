@@ -81,9 +81,9 @@ Notation "'release'" := (imm_hb.release G).
 Notation "'rs'" := (imm_hb.rs G).
 Notation "'hb'" := (imm_hb.hb G).
 Notation "'ppo'" := (imm_ppo.ppo G).
-Notation "'psc'" := (imm.psc G).
-Notation "'psc_f'" := (imm.psc_f G).
-Notation "'psc_base'" := (imm.psc_base G).
+Notation "'psc'" := (Imm.psc G).
+Notation "'psc_f'" := (Imm.psc_f G).
+Notation "'psc_base'" := (Imm.psc_base G).
 Notation "'ar_int'" := (imm_ppo.ar_int G).
 
 Notation "'Pln'" := (fun a => is_true (is_only_pln lab a)).
@@ -215,8 +215,8 @@ Proof using CON DEPS_RMW_SB REX_IN_RMW_CTRL RMW_DEPS W_EX_ACQ_SB.
   rewrite s_ar_int_in_ord.
   arewrite (rfe ⊆ (obs ∪ dob ∪ aob ∪ boba')⁺ ).
   { unfold Arm.obs; rewrite <- ct_step; basic_solver 12. }
-  arewrite (imm_s.psc G ⊆ imm.psc G).
-  { unfold imm_s.psc, imm.psc. by rewrite s_hb_in_hb. }
+  arewrite (imm_s.psc G ⊆ Imm.psc G).
+  { unfold imm_s.psc, Imm.psc. by rewrite s_hb_in_hb. }
   rewrite psc_in_ord; auto.
   relsf; red; relsf.
   apply (external_alt_bob' WF CON).

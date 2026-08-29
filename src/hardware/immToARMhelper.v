@@ -14,6 +14,17 @@ Require Import imm.
 
 Set Implicit Arguments.
 
+Module immToARMhelper (Val : ValueSig) (Ev : Events Val).
+
+Module Import Imm := Imm Val Ev.
+Module Import Hb := Imm.Hb.
+Module Import Ppo := Imm.Ppo.
+Module Import Bob := Imm.Bob.
+Module Import Eco := Imm.Eco.
+Module Import Ex := Imm.Ex.
+Module Import ArmM := ArmWithEco Val Ev Eco.
+Import Ev.
+
 Section immToARM.
 
 Variable G : execution.
@@ -79,7 +90,7 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 Notation "'obs'" := (obs G).
 Notation "'obs''" := (obs' G).
 Notation "'aob'" := (aob G).
-Notation "'boba'" := (Arm.bob G).
+Notation "'boba'" := (ArmM.bob G).
 Notation "'boba''" := (bob' G).
 Notation "'dob'" := (dob G).
 
@@ -123,7 +134,7 @@ Proof using CON. apply CON. Qed.
 Lemma rs_rfi_Q: rs ⨾ rfi ⨾ ⦗Q⦘ ⊆ sb ∩ same_loc ⨾ ⦗Q⦘ ∪ (obs ∪ dob ∪ aob ∪ boba')⁺  ⨾ ⦗Q⦘.
 Proof using CON.
   generalize (rs_in_co  WF SC_PER_LOC).
-  unfold imm_hb.rs.
+  unfold Hb.rs.
   intro X.
   rewrite rtE; relsf; unionL.
   { rewrite (rfi_in_sbloc' WF); generalize (@sb_same_loc_trans G).
@@ -148,8 +159,8 @@ Proof using CON.
     rewrite (coi_in_sbloc' WF). rewrite (rfi_in_sbloc' WF).
     apply transitiveI. apply sb_same_loc_trans. }
   rewrite ct_begin, rtE, <- ct_step.
-  unfold Arm.aob at 2.
-  unfold Arm.obs at 1.
+  unfold ArmM.aob at 2.
+  unfold ArmM.obs at 1.
   basic_solver 42.
 Qed.
 
@@ -164,7 +175,7 @@ Proof using.
   arewrite (⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb)^? ⨾ ⦗W⦘ ⨾ coi^?  ⊆ ⦗L ∪₁ F^sy⦘ ⨾ boba'^?).
   { case_refl _.
     2: rewrite coi_in_sb; generalize (@sb_trans G).
-    all: unfold Arm.bob', Arm.bob; basic_solver 21. }
+    all: unfold ArmM.bob', ArmM.bob; basic_solver 21. }
   hahn_frame.
   arewrite (boba' ⊆ obs ∪ dob ∪ aob ∪ boba') at 1.
   arewrite (obs   ⊆ obs ∪ dob ∪ aob ∪ boba') at 2.
@@ -176,7 +187,7 @@ Lemma rfe_sb_Acq_in_ord :
   rfe ⨾ ⦗R⦘ ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⊆ (obs ∪ dob ∪ aob ∪ boba')⁺ ⨾ ⦗Q ∪₁ F^ld ∪₁ F^sy⦘.
 Proof using.
   arewrite (⦗R⦘ ⨾ (sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⊆ boba'^? ⨾ ⦗Q ∪₁ F^ld ∪₁ F^sy⦘).
-  { unfold Arm.bob'. basic_solver 21. }
+  { unfold ArmM.bob'. basic_solver 21. }
   hahn_frame_r.
   arewrite (boba' ⊆ obs ∪ dob ∪ aob ∪ boba') at 1.
   arewrite (rfe ⊆ obs).
@@ -189,7 +200,7 @@ Lemma sw_in_ord :
        ⦗L⦘ ⨾ sb ∩ same_loc ⨾ ⦗R⦘ ⨾ sb ⨾ ⦗F^ld⦘ ∪ 
        ⦗L∪₁F^sy⦘ ⨾ (obs ∪ dob ∪ aob ∪ boba')⁺ ⨾ ⦗Q ∪₁ F^ld ∪₁ F^sy⦘.
 Proof using CON.
-  unfold imm_hb.sw, imm_hb.release.
+  unfold Hb.sw, Hb.release.
   rewrite (dom_l (wf_rsD WF)), (dom_r (wf_rfeD WF)), !seqA; relsf.
   rewrite !seqA.
   unionL.
@@ -209,12 +220,12 @@ Proof using CON.
       arewrite (⦗W⦘ ⨾ sb ∩ same_loc ⨾ ⦗Q⦘ ⊆ sb^? ⨾ ⦗Q ∪₁ F^ld ∪₁ F^sy⦘).
       { basic_solver 12. }
       generalize (@sb_trans G); ins; relsf.
-      rewrite <- ct_step; unfold Arm.bob'; basic_solver 12. }
+      rewrite <- ct_step; unfold ArmM.bob'; basic_solver 12. }
     case_refl _. 
     { basic_solver 12. }
     unionR right.
     arewrite (⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb) ⨾ ⦗W⦘ ⊆ ⦗L ∪₁ F^sy⦘ ⨾ boba'^?).
-    { unfold Arm.bob'. basic_solver 21. }
+    { unfold ArmM.bob'. basic_solver 21. }
     arewrite (boba' ⊆ obs ∪ dob ∪ aob ∪ boba') at 1.
     arewrite (Q ⊆₁ Q ∪₁ F^ld ∪₁ F^sy) at 1 by basic_solver.
     hahn_frame. apply cr_ct. }
@@ -227,7 +238,7 @@ Proof using CON.
     arewrite (⦗W⦘ ⨾ sb ∩ same_loc ⨾ ⦗R⦘ ⨾ sb ⨾ ⦗F⦘ ⨾ ⦗Acq⦘ ⊆ sb^? ⨾ ⦗Q ∪₁ F^ld ∪₁ F^sy⦘).
     arewrite (⦗F⦘ ⨾ ⦗Acq⦘ ⊆ ⦗F^ld⦘) by mode_solver 12.
     { generalize (@sb_trans G). basic_solver 12. }
-    rewrite <- ct_step; unfold Arm.bob'; basic_solver 12. }
+    rewrite <- ct_step; unfold ArmM.bob'; basic_solver 12. }
   unionR right.
   sin_rewrite rs_prefix_co_in_ord. rewrite <- rt_ct. rewrite !seqA.
   do 2 hahn_frame_l.
@@ -256,7 +267,7 @@ Proof using CON.
   hahn_frame_r.
   arewrite (sb^? ⨾ ⦗L ∪₁ F^sy⦘ ⊆ boba'^?).
   { rewrite !crE. rewrite seq_union_l, seq_id_l.
-    unfold Arm.bob', Arm.bob. basic_solver 20. }
+    unfold ArmM.bob', ArmM.bob. basic_solver 20. }
   arewrite (boba'^? ⨾ (obs ∪ dob ∪ aob ∪ boba')⁺ ⊆ (obs ∪ dob ∪ aob ∪ boba')⁺).
   { arewrite (boba'^? ⊆ (obs ∪ dob ∪ aob ∪ boba')＊) at 1. apply rt_ct. }
   apply ct_of_ct.
@@ -270,14 +281,14 @@ Proof using CON.
   apply union_mori; [done|].
   rewrite ct_sb_swe_in_ord, !seqA.
   arewrite (⦗Q ∪₁ F^ld ∪₁ F^sy⦘ ⨾ sb^? ⊆ boba'^?).
-  { unfold Arm.bob', Arm.bob; basic_solver 14. }
+  { unfold ArmM.bob', ArmM.bob; basic_solver 14. }
   arewrite (boba' ⊆ (obs ∪ dob ∪ aob ∪ boba')＊) at 2.
   relsf.
 Qed.
 
 Lemma sbrel_in_ord : sb ⨾ ⦗L ∪₁ F^sy⦘ ⊆ boba'.
 Proof using CON.
-  unfold Arm.bob', Arm.bob; basic_solver 14.
+  unfold ArmM.bob', ArmM.bob; basic_solver 14.
 Qed.
 
 (******************************************************************************)
@@ -313,7 +324,7 @@ Qed.
 
 Lemma psc_in_ord : sb^? ⨾ psc ⨾ sb^? ⊆ (obs ∪ dob ∪ aob ∪ boba')⁺ .
 Proof using CON W_EX_ACQ_SB.
-  unfold imm.psc.
+  unfold Imm.psc.
   rewrite (eco_in_sb_obs_sb WF). rewrite !seqA.
   arewrite (hb ⨾ sb^? ⊆ hb).
   { rewrite sb_in_hb. apply rewrite_trans_seq_cr_r. by apply hb_trans. }
@@ -324,7 +335,7 @@ Proof using CON W_EX_ACQ_SB.
   { rewrite hb_in_ord. rewrite !seq_union_r.
     unionL.
     { rewrite <- ct_step. unionR right.
-      unfold Arm.bob', Arm.bob.
+      unfold ArmM.bob', ArmM.bob.
       rewrite crE. rewrite !seq_union_l, seq_id_l.
       unionL.
       2: by eauto 10 with hahn.
@@ -334,12 +345,12 @@ Proof using CON W_EX_ACQ_SB.
     hahn_frame_r.
     transitivity boba'^?.
     2: basic_solver.
-    unfold Arm.bob'. basic_solver 10. }
+    unfold ArmM.bob'. basic_solver 10. }
   arewrite (hb ⨾ ⦗F^sy⦘ ⨾ sb^? ⊆ (obs ∪ dob ∪ aob ∪ boba')⁺).
   { rewrite hb_in_ord. rewrite !seq_union_l.
     unionL.
     { rewrite <- ct_step. unionR right.
-      unfold Arm.bob', Arm.bob.
+      unfold ArmM.bob', ArmM.bob.
       rewrite crE. rewrite !seq_union_r, seq_id_r.
       unionL.
       2: by eauto 10 with hahn.
@@ -349,7 +360,7 @@ Proof using CON W_EX_ACQ_SB.
     hahn_frame_l.
     transitivity boba'^?.
     2: basic_solver.
-    unfold Arm.bob'. basic_solver 10. }
+    unfold ArmM.bob'. basic_solver 10. }
   arewrite (obs ⊆ obs ∪ dob ∪ aob ∪ boba') at 2.
   arewrite (obs ⊆ obs ∪ dob ∪ aob ∪ boba') at 3.
   rewrite !cr_ct. apply transitiveI. apply transitive_ct.
@@ -374,22 +385,22 @@ Proof using CON.
   2: { basic_solver. }
   arewrite !(⦗F^sy⦘ ⨾ sb ⊆ boba').
   2: { rewrite <- ct_step. basic_solver 10. }
-  unfold Arm.bob'. basic_solver 10.
+  unfold ArmM.bob'. basic_solver 10.
 Qed.
 
 Lemma sb_psc_f_sb_in_ord : sb^? ⨾ psc_f ⨾ sb^? ⊆ (obs ∪ dob ∪ aob ∪ boba')⁺.
 Proof using CON W_EX_ACQ_SB.
-  unfold imm.psc_f.
+  unfold Imm.psc_f.
   rewrite crE with (r := eco ⨾ hb).
   repeat (rewrite !seq_union_l, !seq_union_r).
   rewrite !seq_id_l, !seqA.
   unionL.
-  2: { generalize psc_in_ord. unfold imm.psc. by rewrite !seqA. }
+  2: { generalize psc_in_ord. unfold Imm.psc. by rewrite !seqA. }
   arewrite (⦗F ∩₁ Sc⦘ ⊆ ⦗F^sy⦘) by mode_solver.
   arewrite !(sb^? ⨾ ⦗F^sy⦘⊆ boba'^? ⨾ ⦗F^sy⦘).
-  { unfold Arm.bob'. basic_solver 21. }
+  { unfold ArmM.bob'. basic_solver 21. }
   arewrite !(⦗F^sy⦘ ⨾ sb^? ⊆ ⦗F^sy⦘ ⨾ boba'^? ).
-  { unfold Arm.bob'. basic_solver 21. }
+  { unfold ArmM.bob'. basic_solver 21. }
   sin_rewrite hb_f_sy_in_ord.
   arewrite_id ⦗F^sy⦘. rewrite seq_id_l.
   set (X:= (obs ∪ dob ∪ aob ∪ boba')).
@@ -414,7 +425,7 @@ Proof using CON W_EX_ACQ_SB.
     rewrite set_inter_union_l, id_union, !seq_union_l.
     arewrite (⦗F ∩₁ Sc⦘ ⊆ ⦗F^sy⦘) by mode_solver.
     arewrite (⦗R ∩₁ Sc⦘ ⊆ ⦗Q⦘) by mode_solver.
-    unfold Arm.bob', Arm.bob.
+    unfold ArmM.bob', ArmM.bob.
     basic_solver 10. }
   arewrite (Sc ⊆₁ ((W ∪₁ F) ∪₁ R) ∩₁ Sc) at 2 by type_solver.
   rewrite set_inter_union_l, id_union, !seq_union_r.
@@ -423,16 +434,16 @@ Proof using CON W_EX_ACQ_SB.
     rewrite set_inter_union_l, id_union, !seq_union_r.
     arewrite (⦗F ∩₁ Sc⦘ ⊆ ⦗F^sy⦘) by mode_solver.
     arewrite (⦗W ∩₁ Sc⦘ ⊆ ⦗L⦘) by mode_solver.
-    unfold Arm.bob', Arm.bob.
+    unfold ArmM.bob', ArmM.bob.
     basic_solver 20. }
   arewrite (⦗W ∩₁ Sc⦘ ⊆ ⦗L⦘) by mode_solver.
-  unfold Arm.bob', Arm.bob.
+  unfold ArmM.bob', ArmM.bob.
   basic_solver 10.
 Qed.
 
 Lemma psc_base_in_ord : psc_base ⊆ (obs ∪ dob ∪ aob ∪ boba')⁺.
 Proof using CON W_EX_ACQ_SB.
-  unfold imm.psc_base, imm.scb.
+  unfold Imm.psc_base, Imm.scb.
   rewrite coi_union_coe, fri_union_fre.
   rewrite coi_in_sb, fri_in_sb. 
   rewrite sb_in_hb.
@@ -489,29 +500,28 @@ Proof using CON W_EX_ACQ_SB.
   arewrite (ctrl ⨾ sb^? ⊆ ctrl).
   generalize (ctrl_sb WF); basic_solver 12.
   arewrite (ctrl ⨾ ⦗W⦘⊆ dob).
-  unfold Arm.dob; basic_solver 12.
+  unfold ArmM.dob; basic_solver 12.
 
   arewrite ( addr ⨾ sb^? ⨾ ⦗W⦘⊆ dob).
-  unfold Arm.dob; basic_solver 12.
+  unfold ArmM.dob; basic_solver 12.
 
   rewrite <- ct_end; basic_solver.
 Qed.
 
 Lemma bob_in_boba : bob ⊆ boba' ∪ sb ⨾ ⦗F^ld⦘.
 Proof using CON W_EX_ACQ_SB.
-  unfold imm_bob.bob, imm_bob.fwbob, Arm.bob', Arm.bob.
+  unfold Bob.bob, Bob.fwbob, ArmM.bob', ArmM.bob.
   unionL.
   { basic_solver 20. }
-  { arewrite (⦗L⦘ ⊆ ⦗L⦘ ⨾ ⦗W⦘) at 1 by basic_solver.
-    rewrite (w_sb_loc_w_in_coi WF SC_PER_LOC); rels. }
+  { basic_solver 20. }
   { mode_solver 22. }
-  { mode_solver 22. }
+  { basic_solver 20. }
   basic_solver 15.
 Qed.
 
 Lemma W_ex_acq_sb_in_boba1 : ⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ (sb ⨾ ⦗F^ld⦘ ∪ boba')⁺.
 Proof using W_EX_ACQ_SB.
-  unfold Arm.bob'.
+  unfold ArmM.bob'.
   sin_rewrite W_EX_ACQ_SB.
   case_refl _.
     by type_solver 12.
@@ -529,3 +539,5 @@ Proof using CON W_EX_ACQ_SB.
 Qed.
 
 End immToARM.
+
+End immToARMhelper.

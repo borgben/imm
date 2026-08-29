@@ -38,7 +38,7 @@ Section LDRF_Fsc.
 
 Variable G : execution.
 Hypothesis WF: Wf G.
-Hypothesis IC : imm.imm_consistent G. 
+Hypothesis IC : Imm.imm_consistent G.
            
 Notation "'E'" := (acts_set G).
 Notation "'Init'" := (is_init).
@@ -565,7 +565,7 @@ Proof using All.
     { unfold imm_bob.bob, imm_bob.fwbob.
       arewrite (Sc ⊆₁ Acq/Rel) by mode_solver. 
       basic_solver 10. }
-    unfold imm.ar, imm_ppo.ar_int. basic_solver 10. }
+    unfold Imm.ar, imm_ppo.ar_int. basic_solver 10. }
   rewrite ct_begin with (r:=(sb ⨾ rfe)).
   rewrite !seqA.
   rewrite (dom_r (wf_rfeD WF)), seqA.

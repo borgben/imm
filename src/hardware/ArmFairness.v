@@ -86,9 +86,9 @@ Notation "'release'" := (imm_hb.release G).
 Notation "'rs'" := (imm_hb.rs G).
 Notation "'hb'" := (imm_hb.hb G).
 Notation "'ppo'" := (imm_ppo.ppo G).
-Notation "'psc'" := (imm.psc G).
-Notation "'psc_f'" := (imm.psc_f G).
-Notation "'psc_base'" := (imm.psc_base G).
+Notation "'psc'" := (Imm.psc G).
+Notation "'psc_f'" := (Imm.psc_f G).
+Notation "'psc_base'" := (Imm.psc_base G).
 Notation "'ar_int'" := (imm_ppo.ar_int G).
 
 Notation "'Pln'" := (fun a => is_true (is_only_pln lab a)).

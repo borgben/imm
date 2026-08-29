@@ -470,7 +470,7 @@ Proof using CON DATA_RMW NO_W_REL RMW_CTRL_FAIL RMW_DEPS R_ACQ_SB SC_F.
 rewrite unionC.
 apply acyclic_union; [by apply CON|].
 rewrite !seqA.
-unfold imm.psc.
+unfold Imm.psc.
 rewrite (dom_r (wf_ecoD WF)), !seqA.
 sin_rewrite rw_hb_f_in_hbp.
 rewrite (dom_l (wf_ecoD WF)), !seqA.
@@ -787,7 +787,7 @@ Proof using CON DATA_RMW DEPS_RMW_FAIL NO_W_REL RMW_CTRL_FAIL RMW_DEPS R_ACQ_SB 
   rewrite unionK.
   arewrite (psc_f G ⊆ (ar G)⁺).
   2: { red. by rewrite ct_of_ct. }
-  unfold psc_f, imm.psc. rewrite crE.
+  unfold psc_f, Imm.psc. rewrite crE.
   rewrite !seq_union_l, !seq_union_r, seq_id_l, !seqA.
   unionL.
   { by apply f_sc_hb_f_sc_in_ar. }
@@ -812,7 +812,7 @@ Lemma IMM_fair
 Proof using CON DATA_RMW DEPS_RMW_FAIL G NO_W_REL RMW_CTRL_FAIL RMW_DEPS R_ACQ_SB SC_F.
   assert (WF' : Wf G) by apply WF.
   assert (transitive sb) as TSB by apply sb_trans.
-  red. unfold imm.ar.
+  red. unfold Imm.ar.
   arewrite (psc ⊆ ∅₂).
   { rewrite (dom_l (wf_pscE WF)).
     rewrite (dom_l (wf_pscD G)).
