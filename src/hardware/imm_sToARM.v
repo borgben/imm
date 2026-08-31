@@ -37,9 +37,9 @@ Module Import Ppo := Imm.Ppo.
 Module Import Bob := Imm.Bob.
 Module Import Eco := Imm.Eco.
 Module Import Ex := Imm.Ex.
-Module Models := ARMHelperModels Val Ev Imm.
-Module Import Helper := immToARMhelperWithModels Val Ev Models.
-Module Import ArmM := Models.ArmM.
+Module SharedArm := ArmWithEco Val Ev Eco.
+Module Import Helper := immToARMhelperWithModels Val Ev Imm SharedArm.
+Module Import ArmM := Helper.ArmM.
 Module Import HH := imm_s_hb_hbWithSHb Val Ev SHb.
 Import Ev.
 

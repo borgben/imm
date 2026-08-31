@@ -574,6 +574,13 @@ End ArmDefs.
 
 End ArmWithEco.
 
+Module Type ArmSig
+    (Val : ValueSig)
+    (Ev : Events Val)
+    (Eco : Execution_ecoSig Val Ev).
+  Include ArmWithEco Val Ev Eco.
+End ArmSig.
+
 Module Arm
     (Val : ValueSig)
     (Ev : Events Val).

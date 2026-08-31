@@ -14,41 +14,19 @@ Require Import imm.
 
 Set Implicit Arguments.
 
-Module ARMHelperModels
-    (Val : ValueSig)
-    (Ev : Events Val)
-    (ImmM : ImmSig Val Ev).
-
-Module Imm := ImmM.
-Module Eco := Imm.Eco.
-Module ArmM := ArmWithEco Val Ev Eco.
-
-End ARMHelperModels.
-
-Module ARMHelperModelsTemplate (Val : ValueSig) (Ev : Events Val).
-  Module Imm := Imm Val Ev.
-  Module Eco := Imm.Eco.
-  Module ArmM := ArmWithEco Val Ev Eco.
-End ARMHelperModelsTemplate.
-
-Module Type ARMHelperModelsSig
-    (Val : ValueSig)
-    (Ev : Events Val).
-  Include ARMHelperModelsTemplate Val Ev.
-End ARMHelperModelsSig.
-
 Module immToARMhelperWithModels
     (Val : ValueSig)
     (Ev : Events Val)
-    (Models : ARMHelperModelsSig Val Ev).
+    (ImmM : ImmSig Val Ev)
+    (Arm : ArmSig Val Ev ImmM.Eco).
 
-Module Import Imm := Models.Imm.
+Module Import Imm := ImmM.
 Module Import Hb := Imm.Hb.
 Module Import Ppo := Imm.Ppo.
 Module Import Bob := Imm.Bob.
 Module Import Eco := Imm.Eco.
 Module Import Ex := Imm.Ex.
-Module Import ArmM := Models.ArmM.
+Module Import ArmM := Arm.
 Import Ev.
 
 Section immToARM.
@@ -571,6 +549,6 @@ End immToARMhelperWithModels.
 
 Module immToARMhelper (Val : ValueSig) (Ev : Events Val).
   Module FullImm := Imm Val Ev.
-  Module Models := ARMHelperModels Val Ev FullImm.
-  Include immToARMhelperWithModels Val Ev Models.
+  Module BaseArm := ArmWithEco Val Ev FullImm.Eco.
+  Include immToARMhelperWithModels Val Ev FullImm BaseArm.
 End immToARMhelper.
