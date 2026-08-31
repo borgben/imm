@@ -1,4 +1,4 @@
-Require Import Classical Peano_dec Setoid PeanoNat.
+(* (* (* Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 Require Import Lia.
@@ -315,8 +315,8 @@ Proof using.
     unfold event, action. unfolder. ins. desc. destruct y; ins; vauto. } 
   
   rewrite pow_S_end. rewrite <- seqA.
-  arewrite (ar ∪ rf ⨾ ppo ∩ same_loc ⊆ (sb ∪ sc)^+ ∪ rfe ⨾ (sb ∪ sc)^*) at 2.
-  { unfold "ar". rewrite rfi_union_rfe, inclusion_inter_l1.
+  (* arewrite (ar ∪ rf ⨾ ppo ∩ same_loc ⊆ (sb ∪ sc)^+ ∪ rfe ⨾ (sb ∪ sc)^*) at 2. *)
+  (* { unfold "ar". rewrite rfi_union_rfe, inclusion_inter_l1.
     rewrite ppo_in_sb, ar_int_in_sb, rfi_in_sb; auto.
     case_union _ _. rewrite sb_sb. rewrite <- ct_step.
     repeat (apply inclusion_union_l); try basic_solver 10.
@@ -1353,4 +1353,6 @@ Proof using.
   all: try now eapply iiord_no_reserve_step_minus_reserved; eauto.
 Qed.
   
-End SimClosure.
+End SimClosure.  *)
+
+

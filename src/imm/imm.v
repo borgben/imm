@@ -475,3 +475,9 @@ Qed.
 End ImmDefs.
 
 End Imm.
+
+Module Type ImmSig
+    (Val : ValueSig)
+    (Ev : Events Val).
+  Include Imm Val Ev.
+End ImmSig.

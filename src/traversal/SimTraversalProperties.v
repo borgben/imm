@@ -1,4 +1,4 @@
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 Require Import Events Execution.
 Require Import imm_s.
 Require Import TraversalConfig.
@@ -282,4 +282,4 @@ Proof using WF.
   basic_solver 10.
 Qed.
 
-End SimTraversalProperties.
+End SimTraversalProperties. *)

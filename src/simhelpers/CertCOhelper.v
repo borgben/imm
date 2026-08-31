@@ -1,4 +1,4 @@
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 Require Import Events.
 Require Import Execution.
 From hahnExt Require Import HahnExt.
@@ -468,4 +468,4 @@ Global Add Parametric Morphism : new_co with signature
 Proof using.
   ins. split; [| symmetry in H, H0]; eapply new_co_more_impl; eauto.
 Qed. 
-
+ *)

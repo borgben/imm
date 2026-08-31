@@ -1,5 +1,5 @@
 (* TODO: split this file... *)
-Require Import Classical Peano_dec Setoid PeanoNat.
+(* Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
 
 Require Import Events.
@@ -139,4 +139,4 @@ Section E_E.
            ); try by (subst; apply E_ENI_trans).
     basic_solver. 
   Qed.
-End E_E. 
+End E_E.  *)

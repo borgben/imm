@@ -14,15 +14,41 @@ Require Import imm.
 
 Set Implicit Arguments.
 
-Module immToARMhelper (Val : ValueSig) (Ev : Events Val).
+Module ARMHelperModels
+    (Val : ValueSig)
+    (Ev : Events Val)
+    (ImmM : ImmSig Val Ev).
 
-Module Import Imm := Imm Val Ev.
+Module Imm := ImmM.
+Module Eco := Imm.Eco.
+Module ArmM := ArmWithEco Val Ev Eco.
+
+End ARMHelperModels.
+
+Module ARMHelperModelsTemplate (Val : ValueSig) (Ev : Events Val).
+  Module Imm := Imm Val Ev.
+  Module Eco := Imm.Eco.
+  Module ArmM := ArmWithEco Val Ev Eco.
+End ARMHelperModelsTemplate.
+
+Module Type ARMHelperModelsSig
+    (Val : ValueSig)
+    (Ev : Events Val).
+  Include ARMHelperModelsTemplate Val Ev.
+End ARMHelperModelsSig.
+
+Module immToARMhelperWithModels
+    (Val : ValueSig)
+    (Ev : Events Val)
+    (Models : ARMHelperModelsSig Val Ev).
+
+Module Import Imm := Models.Imm.
 Module Import Hb := Imm.Hb.
 Module Import Ppo := Imm.Ppo.
 Module Import Bob := Imm.Bob.
 Module Import Eco := Imm.Eco.
 Module Import Ex := Imm.Ex.
-Module Import ArmM := ArmWithEco Val Ev Eco.
+Module Import ArmM := Models.ArmM.
 Import Ev.
 
 Section immToARM.
@@ -75,8 +101,8 @@ Notation "'ppo'" := (ppo G).
 Notation "'psc'" := (psc G).
 Notation "'psc_f'" := (psc_f G).
 Notation "'psc_base'" := (psc_base G).
-Notation "'bob'" := (bob G).
-Notation "'detour'" := (detour G).
+Notation "'bob'" := (Bob.bob G).
+Notation "'detour'" := (Ex.detour G).
 
 Notation "'Pln'" := (fun a => is_true (is_only_pln lab a)).
 Notation "'Rlx'" := (fun a => is_true (is_rlx lab a)).
@@ -513,9 +539,10 @@ Proof using CON W_EX_ACQ_SB.
   unfold Bob.bob, Bob.fwbob, ArmM.bob', ArmM.bob.
   unionL.
   { basic_solver 20. }
-  { basic_solver 20. }
+  { arewrite (⦗L⦘ ⊆ ⦗L⦘ ⨾ ⦗W⦘) at 1 by basic_solver.
+    rewrite (w_sb_loc_w_in_coi WF SC_PER_LOC); rels. }
   { mode_solver 22. }
-  { basic_solver 20. }
+  { mode_solver 22. }
   basic_solver 15.
 Qed.
 
@@ -540,4 +567,10 @@ Qed.
 
 End immToARM.
 
+End immToARMhelperWithModels.
+
+Module immToARMhelper (Val : ValueSig) (Ev : Events Val).
+  Module FullImm := Imm Val Ev.
+  Module Models := ARMHelperModels Val Ev FullImm.
+  Include immToARMhelperWithModels Val Ev Models.
 End immToARMhelper.

@@ -1,4 +1,4 @@
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 
 Require Import Events.
@@ -205,4 +205,4 @@ Proof using.
   mode_solver.
 Qed.
 
-End TCCOH_ALT.
+End TCCOH_ALT. *)

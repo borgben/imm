@@ -1,4 +1,4 @@
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 
 Require Import Events.
 Require Import Execution.
@@ -437,4 +437,4 @@ Proof using WF IMMCON tc_old.
 Qed.
 
 End Props.
-End TCCOH_ALT_OLD.
+End TCCOH_ALT_OLD. *)

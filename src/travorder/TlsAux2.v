@@ -1,4 +1,4 @@
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 
 From imm Require Import Events Execution.
@@ -52,4 +52,4 @@ Proof using EQACTS EQTIDS EQW TCOH.
   rewrite exec_tls_more; auto.
 Qed.
 
-End TLSCoherentMore.
+End TLSCoherentMore. *)

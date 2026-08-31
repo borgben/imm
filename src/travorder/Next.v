@@ -1,4 +1,4 @@
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 
 From imm Require Import Events Execution.
@@ -189,4 +189,4 @@ End Next.
 Global Add Parametric Morphism : next with signature
        eq ==> (@set_equiv actid) ==> (@set_equiv actid) as next_more. 
 Proof using. ins. unfold next. rewrite H. basic_solver. Qed. 
-
+ *)

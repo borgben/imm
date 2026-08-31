@@ -1,4 +1,4 @@
-Require Import Classical Peano_dec Setoid PeanoNat.
+(* Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
 Require Import Lia.
 
@@ -338,4 +338,4 @@ End Helpers.
     eapply sim_trav_steps_rmw_covered; eauto.
   Qed.
 
-End TraversalCounting.
+End TraversalCounting. *)

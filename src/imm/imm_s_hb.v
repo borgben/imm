@@ -371,3 +371,9 @@ Qed.
 End ImmSHbDefs.
 
 End imm_s_hb.
+
+Module Type imm_s_hbSig
+    (Val : ValueSig)
+    (Ev : Events Val).
+  Include imm_s_hb Val Ev.
+End imm_s_hbSig.

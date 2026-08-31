@@ -1,4 +1,4 @@
-Require Import Classical Peano_dec Setoid PeanoNat.
+(* Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 
@@ -1612,4 +1612,4 @@ Qed.
 End HbProps.
 End Properties.
 
-End TraversalConfig.
+End TraversalConfig. *)

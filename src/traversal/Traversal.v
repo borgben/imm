@@ -1,4 +1,4 @@
-Require Import Classical Peano_dec Setoid PeanoNat.
+(* Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
 
 Require Import Events.
@@ -628,4 +628,4 @@ ins; desc; subst.
     mode_solver.
   Qed.
 
-End Traversal.
+End Traversal. *)

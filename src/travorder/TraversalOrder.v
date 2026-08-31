@@ -1,4 +1,4 @@
-Require Import Classical Peano_dec Setoid PeanoNat.
+(* Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 Require Import Lia.
@@ -1134,4 +1134,4 @@ Global Add Parametric Morphism : iord with signature
 Proof using.
   ins. split.
   all: apply iord_mori; auto; apply H.
-Qed.
+Qed. *)

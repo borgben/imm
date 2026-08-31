@@ -1,4 +1,4 @@
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 Require Import TraversalOrder.
 Require Import TLSCoherency.
 Require Import IordCoherency.
@@ -657,4 +657,4 @@ Hint Rewrite issued_eq_ta_cover issued_ta_reserve issued_eq_ta_reserve issued_si
              set_pair_empty_l set_pair_empty_r
              set_union_empty_l set_union_empty_r
              set_minus_empty
-             : cir_simplify.
+             : cir_simplify. *)

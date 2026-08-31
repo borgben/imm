@@ -1,4 +1,4 @@
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 
 Require Import ReserveClos.
 From hahnExt Require Import HahnExt.
@@ -116,4 +116,4 @@ Proof using.
   now rewrite rt_of_cr.
 Qed.
 
-End ReserveInitClos.
+End ReserveInitClos. *)

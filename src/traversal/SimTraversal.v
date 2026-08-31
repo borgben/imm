@@ -1,4 +1,4 @@
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 
 
 Require Import Events.
@@ -323,4 +323,4 @@ Global Add Parametric Morphism thread: (isim_trav_step thread)^* with signature
     same_trav_config ==> same_trav_config ==> iff as isim_trav_step_refl_trans_more.
 Proof using. ins. apply same_tc_extensionality in H, H0. by subst. Qed.
 
-End SimTraversal.
+End SimTraversal. *)

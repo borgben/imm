@@ -12,9 +12,12 @@ Require Import imm_s_hb.
 
 Set Implicit Arguments.
 
-Module imm_s_hb_hb (Val : ValueSig) (Ev : Events Val).
+Module imm_s_hb_hbWithSHb
+    (Val : ValueSig)
+    (Ev : Events Val)
+    (SHbM : imm_s_hbSig Val Ev).
 
-Module Import SHb := imm_s_hb Val Ev.
+Module Import SHb := SHbM.
 Module Import Hb := SHb.Hb.
 Module Import Bob := Hb.Bob.
 Module Import Eco := Bob.Eco.
@@ -138,4 +141,9 @@ Qed.
 
 End SHbHbDefs.
 
+End imm_s_hb_hbWithSHb.
+
+Module imm_s_hb_hb (Val : ValueSig) (Ev : Events Val).
+  Module BaseSHb := imm_s_hb Val Ev.
+  Include imm_s_hb_hbWithSHb Val Ev BaseSHb.
 End imm_s_hb_hb.

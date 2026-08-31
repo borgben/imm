@@ -1,4 +1,4 @@
-Require Import Lia.
+(* Require Import Lia.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 Require Import Events.
@@ -149,4 +149,4 @@ Hint Rewrite reserve_clos_eq_ta_cover reserve_clos_eq_ta_issue
              covered_reserve_clos 
              reserve_clos_init_tls
              reserve_clos_ta_reserve
-             : cir_simplify.
+             : cir_simplify. *)

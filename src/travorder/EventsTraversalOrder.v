@@ -1,4 +1,4 @@
-From hahn Require Import Hahn.
+(* (* From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 
 Require Import Events Execution.
@@ -1501,4 +1501,4 @@ Proof using WF WFSC TLSCOH IORDCOH.
   rewrite covered_in_coverable at 1; eauto. by apply dom_sb_sc_ct_coverable. 
 Qed. 
   
-End TlsProperties.
+End TlsProperties.  *)

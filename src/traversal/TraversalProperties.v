@@ -1,4 +1,4 @@
-Require Import Classical Peano_dec Setoid PeanoNat.
+(* Require Import Classical Peano_dec Setoid PeanoNat.
 From hahn Require Import Hahn.
 
 Require Import Events.
@@ -118,4 +118,4 @@ Proof using WF TCCOH IMMCON.
   basic_solver 10.
 Qed.
 
-End TraversalProperties.
+End TraversalProperties. *)

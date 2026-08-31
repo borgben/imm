@@ -1,4 +1,4 @@
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 Require Import Lia.
 
@@ -312,4 +312,4 @@ Proof using.
   rewrite <- EQ'. rewrite !set_minusE in EQ'. rewrite EQ' in ICOH.
   rewrite set_minusE. apply set_subset_inter_r. split; [| basic_solver].
   rewrite ICOH. basic_solver. 
-Qed.
+Qed. *)

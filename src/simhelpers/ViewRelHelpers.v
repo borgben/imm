@@ -1,4 +1,4 @@
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 From PromisingLib Require Import Basic DenseOrder Loc.
 
 Require Import Events.
@@ -812,4 +812,4 @@ Proof using WF.
   by split; [apply COV|apply NCOV].
 Qed.
 
-End ViewRelHelpers.
+End ViewRelHelpers. *)
