@@ -2,7 +2,7 @@
 
 (******************************************************************************)
 
-Require Import Classical Peano_dec.
+(* Require Import Classical Peano_dec.
 From hahn Require Import Hahn.
 
 Require Import Events.
@@ -235,12 +235,12 @@ Lemma sub_sc_in : sc' ⊆ sc.
 Proof using SUB. rewrite sub_sc; basic_solver. Qed.
 
 Lemma sub_W_ex_in : W_ex' ⊆₁ W_ex.
-Proof using SUB. unfold Execution.W_ex; rewrite sub_rmw_in; basic_solver. Qed.
+Proof using SUB. unfold W_ex; rewrite sub_rmw_in; basic_solver. Qed.
 Lemma sub_W_ex_acq_in : W_ex_acq' ⊆₁ W_ex_acq.
 Proof using SUB. by rewrite sub_W_ex_in, sub_xacq. Qed.
 
 Lemma sub_sb : sb' ≡ ⦗E'⦘ ⨾  sb ⨾ ⦗E'⦘.
-Proof using SUB. unfold Execution.sb; generalize sub_E_in; basic_solver 12. Qed.
+Proof using SUB. unfold sb; generalize sub_E_in; basic_solver 12. Qed.
 
 Lemma sub_sb_in : sb' ⊆ sb.
 Proof using SUB. rewrite sub_sb; basic_solver. Qed.
@@ -319,14 +319,14 @@ Lemma sub_bob_in : bob' ⊆ bob .
 Proof using SUB. rewrite sub_bob; basic_solver. Qed.
 
 Lemma sub_rfi : rfi' ≡ ⦗E'⦘ ⨾ rfi ⨾ ⦗E'⦘.
-Proof using SUB. unfold Execution.rfi; rewrite sub_sb, sub_rf; basic_solver. Qed.
+Proof using SUB. unfold rfi; rewrite sub_sb, sub_rf; basic_solver. Qed.
 
 Lemma sub_rfi_in : rfi' ⊆ rfi.
 Proof using SUB. rewrite sub_rfi; basic_solver. Qed.
 
 Lemma sub_rfe : rfe' ≡ ⦗E'⦘ ⨾ rfe ⨾ ⦗E'⦘.
 Proof using SUB. 
-unfold Execution.rfe; rewrite sub_sb, (sub_rf SUB).
+unfold rfe; rewrite sub_sb, (sub_rf SUB).
 split; [basic_solver 15 | unfolder; ins; desf; splits; eauto; intro; desf].
 Qed.
 
@@ -335,7 +335,7 @@ Proof using SUB. rewrite sub_rfe; basic_solver. Qed.
 
 Lemma sub_coe : coe' ≡ ⦗E'⦘ ⨾ coe ⨾ ⦗E'⦘.
 Proof using SUB.
-unfold Execution.coe; rewrite sub_sb, (sub_co SUB).
+unfold coe; rewrite sub_sb, (sub_co SUB).
 split; [basic_solver 15 | unfolder; ins; desf; splits; eauto; intro; desf].
 Qed.
 
@@ -344,7 +344,7 @@ Proof using SUB. rewrite sub_coe; basic_solver. Qed.
 
 Lemma sub_detour_in : detour' ⊆ detour.
 Proof using SUB. 
-unfold Execution.detour.
+unfold detour.
 rewrite sub_sb, sub_coe, sub_rfe_in.
 basic_solver 21.
 Qed.
@@ -371,7 +371,7 @@ Qed.
 
 Lemma sub_fr_in : fr' ⊆ fr.
 Proof using SUB.
-unfold Execution.fr.
+unfold fr.
 by rewrite sub_rf_in, sub_co_in.
 Qed.
 
@@ -687,4 +687,4 @@ Proof using.
   ins. apply BOUND, Ge.
 Qed. 
 
-End SubExecution.
+End SubExecution. *)

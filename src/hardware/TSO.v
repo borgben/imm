@@ -10,11 +10,12 @@ Require Import FairExecution.
 
 Set Implicit Arguments.
 
-Module TSO
+Module TSOWithEco
     (Val : ValueSig)
-    (Ev : Events Val).
+    (Ev : Events Val)
+    (Eco : Execution_ecoSig Val Ev).
 
-Module Import Eco := Execution_eco Val Ev.
+Import Eco.
 Module Import Ex := Eco.Ex.
 
 Section TSODefs.
@@ -186,4 +187,16 @@ Qed.
 
 End TSODefs.
 
+End TSOWithEco.
+
+Module Type TSOSig
+    (Val : ValueSig)
+    (Ev : Events Val)
+    (Eco : Execution_ecoSig Val Ev).
+  Include TSOWithEco Val Ev Eco.
+End TSOSig.
+
+Module TSO (Val : ValueSig) (Ev : Events Val).
+  Module Eco := Execution_eco Val Ev.
+  Include TSOWithEco Val Ev Eco.
 End TSO.

@@ -17,6 +17,20 @@ Require Import FinThreads.
 
 Set Implicit Arguments.
 
+Module immToTSO (Val : ValueSig) (Ev : Events Val).
+
+Module Import Fair := ImmFair Val Ev.
+Module Import FairEx := Fair.FairEx.
+Module Import Imm := Fair.Imm.
+Module Import Hb := Imm.Hb.
+Module Import Ppo := Imm.Ppo.
+Module Import Bob := Imm.Bob.
+Module Import Eco := Imm.Eco.
+Module Import Ex := Imm.Ex.
+Module Import TSOM := TSOWithEco Val Ev Eco.
+Module Import FT := FinThreads Val Ev Ex.
+Import Ev.
+
 Section immToTSO.
 
 Variable G : execution.
@@ -58,16 +72,16 @@ Notation "'same_loc'" := (same_loc lab).
 
 
 (* imm *)
-Notation "'sw'" := (sw G).
-Notation "'release'" := (release G).
-Notation "'rs'" := (rs G).
-Notation "'hb'" := (hb G).
-Notation "'ppo'" := (ppo G).
-Notation "'psc'" := (psc G).
-Notation "'psc_f'" := (psc_f G).
-Notation "'psc_base'" := (psc_base G).
-Notation "'scb'" := (scb G).
-Notation "'bob'" := (bob G).
+Notation "'sw'" := (Hb.sw G).
+Notation "'release'" := (Hb.release G).
+Notation "'rs'" := (Hb.rs G).
+Notation "'hb'" := (Hb.hb G).
+Notation "'ppo'" := (Ppo.ppo G).
+Notation "'psc'" := (Imm.psc G).
+Notation "'psc_f'" := (Imm.psc_f G).
+Notation "'psc_base'" := (Imm.psc_base G).
+Notation "'scb'" := (Imm.scb G).
+Notation "'bob'" := (Bob.bob G).
 
 Notation "'Pln'" := (fun a => is_true (is_only_pln lab a)).
 Notation "'Rlx'" := (fun a => is_true (is_rlx lab a)).
@@ -78,10 +92,10 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 (* tso *)
-Notation "'ppot'" := (TSO.ppo G).
-Notation "'fence'" := (fence G).
-Notation "'implied_fence'" := (implied_fence G).
-Notation "'hbt'" := (TSO.hb G).
+Notation "'ppot'" := (TSOM.ppo G).
+Notation "'fence'" := (TSOM.fence G).
+Notation "'implied_fence'" := (TSOM.implied_fence G).
+Notation "'hbt'" := (TSOM.hb G).
 Notation "'MFENCE'" := (F ∩₁ (fun a => is_true (is_sc lab a))).
 
 Hypothesis CON: TSOConsistent G.
@@ -95,12 +109,12 @@ Proof using CON. apply CON. Qed.
 
 Lemma release_in : release ⊆ sb^? ⨾ ⦗W⦘ ⨾ (ppot ∪ rfe)＊.
 Proof using CON.
-unfold imm_hb.release, imm_hb.rs.
+unfold Hb.release, Hb.rs.
 arewrite (⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb)^? ⊆ sb^?) by basic_solver.
 arewrite (⦗W⦘ ⊆ ⦗W⦘ ⨾ ⦗W⦘) at 1. 
 by basic_solver.
 hahn_frame; relsf; unionL.
-rewrite rt_begin; rewrite TSO.ppo_alt; basic_solver 12.
+rewrite rt_begin; rewrite TSOM.ppo_alt; basic_solver 12.
 rewrite (dom_r (wf_rmwD WF)).
 rewrite <- !seqA.
 rewrite <- rt_seq_swap.
@@ -112,20 +126,20 @@ rewrite rfi_union_rfe; relsf; unionL.
   rewrite (dom_r (wf_rmwD WF)).
   rewrite (rmw_in_sb WF).
   generalize (@sb_trans G).
-  rewrite rt_begin; rewrite TSO.ppo_alt; basic_solver 21.
+  rewrite rt_begin; rewrite TSOM.ppo_alt; basic_solver 21.
 - rewrite (wf_rfeD WF).
   rewrite (dom_r (wf_rmwD WF)).
   rewrite rt_begin.
   rewrite rt_begin.
   rewrite rt_begin.
   rewrite (rmw_in_sb WF).
-  rewrite TSO.ppo_alt; basic_solver 42.
+  rewrite TSOM.ppo_alt; basic_solver 42.
 Qed.
 
 Lemma sw_in : sw ⊆ sb ∪ sb^? ⨾ ⦗W⦘ ⨾ (ppot ∪ rfe)⁺ ⨾ ⦗R⦘ ⨾ sb^?.
 Proof using CON.
 generalize (@sb_trans G); ins.
-unfold imm_hb.sw.
+unfold Hb.sw.
 rewrite (dom_r (wf_releaseD WF)).
 rewrite release_in.
 arewrite ((sb ⨾ ⦗F⦘)^? ⨾ ⦗Acq⦘ ⊆ sb^?) by basic_solver.
@@ -133,9 +147,9 @@ relsf; unionL.
 - rewrite rtE; relsf; unionL.
 by arewrite (rfi ⊆ sb); basic_solver 12.
 rewrite path_ut_last at 1; relsf; unionL.
-rewrite TSO.ppo_in_sb at 1.
+rewrite TSOM.ppo_in_sb at 1.
 arewrite (rfi ⊆ sb); relsf; basic_solver 21.
-rewrite TSO.ppo_in_sb at 2.
+rewrite TSOM.ppo_in_sb at 2.
 rewrite (dom_r (wf_rfiD WF)); rewrite (dom_r (wf_rfeD WF)) at 2; rewrite !seqA.
 arewrite (rfi ⊆ sb).
 arewrite_id ⦗W⦘ at 2.
@@ -143,13 +157,13 @@ relsf.
 arewrite (⦗R⦘ ⊆ ⦗R⦘ ⨾ ⦗R⦘) at 2.
 basic_solver.
 arewrite (⦗R⦘ ⨾ sb ⨾ ⦗R⦘ ⊆ ppot).
-rewrite TSO.ppo_alt; basic_solver 21.
+rewrite TSOM.ppo_alt; basic_solver 21.
 arewrite (ppot ⊆ (ppot ∪ rfe)＊) at 2.
 arewrite (rfe ⊆ (ppot ∪ rfe)⁺) at 2.
 relsf.
 - rewrite (wf_rfeD WF) at 2; rewrite !seqA.
 arewrite (⦗W⦘ ⨾ (sb ∩ same_loc)^? ⨾ ⦗W⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
+rewrite TSOM.ppo_alt; basic_solver 21.
 arewrite (ppot ⊆ (ppot ∪ rfe)＊) at 2.
 arewrite (rfe ⊆ (ppot ∪ rfe)⁺) at 3.
 relsf.
@@ -158,7 +172,7 @@ Qed.
 Lemma hb_in : hb ⊆ sb ∪ sb^? ⨾ ⦗W⦘ ⨾ (ppot ∪ rfe)⁺ ⨾ ⦗R⦘ ⨾ sb^?.
 Proof using CON.
 generalize (@sb_trans G); ins.
-unfold imm_hb.hb.
+unfold Hb.hb.
 rewrite sw_in, <- !unionA; rels.
 apply inclusion_t_ind_right.
 basic_solver.
@@ -166,7 +180,7 @@ basic_solver.
 relsf; rewrite !seqA; relsf; unionL.
 1,2,3: basic_solver 21.
 arewrite (⦗R⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ppot).
-case_refl _; [type_solver| rewrite TSO.ppo_alt; basic_solver 21].
+case_refl _; [type_solver| rewrite TSOM.ppo_alt; basic_solver 21].
 arewrite (ppot ⊆ (ppot ∪ rfe)＊) at 2.
 arewrite ((ppot ∪ rfe)⁺ ⊆ (ppot ∪ rfe)＊) at 1.
 relsf.
@@ -176,21 +190,21 @@ Lemma Coherence : coherence G.
 Proof using CON.
 generalize (@sb_trans G); ins.
 generalize (eco_trans WF); ins.
-cdes CON; unfold TSO.hb in *.
+cdes CON; unfold TSOM.hb in *.
 apply coherence_alt.
 rewrite hb_in; relsf; unionL.
 - apply sb_irr.
 - rotate 2; relsf.
 arewrite (⦗R⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
+rewrite TSOM.ppo_alt; basic_solver 21.
 arewrite (ppot^? ⊆ (ppot ∪ rfe)＊) at 1.
 relsf; eapply acyclic_mon; [edone|basic_solver 12].
 - arewrite (rfe ⊆ rf); rewrite (rf_in_eco); apply SC_PER_LOC.
 - rewrite (wf_rfeD WF) at 2; rewrite !seqA; rotate 1.
 arewrite (⦗R⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
+rewrite TSOM.ppo_alt; basic_solver 21.
 arewrite (⦗R⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
+rewrite TSOM.ppo_alt; basic_solver 21.
 arewrite (ppot^? ⊆ (ppot ∪ rfe)＊).
 arewrite (rfe ⊆ (ppot ∪ rfe)＊) at 4.
 relsf; eapply acyclic_mon; [edone|basic_solver 12].
@@ -202,10 +216,10 @@ basic_solver 12.
 rewrite (dom_l (wf_coD WF)).
 rewrite !seqA.
 arewrite (⦗R⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
+rewrite TSOM.ppo_alt; basic_solver 21.
 rotate 1.
 arewrite (⦗RW⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
+rewrite TSOM.ppo_alt; basic_solver 21.
 arewrite (ppot^? ⊆ (ppot ∪ rfe)＊).
 arewrite (rfe ⊆ (ppot ∪ rfe)＊) at 4.
 rotate 1; relsf.
@@ -220,10 +234,10 @@ basic_solver 12.
 rewrite (dom_l (wf_frD WF)).
 rewrite !seqA.
 arewrite (⦗R⦘ ⨾ sb^? ⨾ ⦗R⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
+rewrite TSOM.ppo_alt; basic_solver 21.
 rotate 1.
 arewrite (⦗RW⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
+rewrite TSOM.ppo_alt; basic_solver 21.
 arewrite (ppot^? ⊆ (ppot ∪ rfe)＊).
 arewrite (rfe ⊆ (ppot ∪ rfe)＊) at 4.
 rotate 1; relsf.
@@ -238,11 +252,11 @@ Proof using CON.
   assert (coherence G) as COH by apply Coherence.
   assert (transitive hb) by apply hb_trans.
   assert (⦗W⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ hbt) as WWHB.
-  { unfold TSO.hb, TSO.ppo.
+  { unfold TSOM.hb, TSOM.ppo.
     repeat unionR left.
     unfolder. ins. desf. splits; auto. intros HH. desf. type_solver. }
   assert (⦗R⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ hbt) as RWHB.
-  { unfold TSO.hb, TSO.ppo.
+  { unfold TSOM.hb, TSOM.ppo.
     repeat unionR left.
     unfolder. ins. desf. splits; auto. intros HH. desf. type_solver. }
   arewrite_id ⦗Rel⦘. rewrite seq_id_l.
@@ -264,7 +278,7 @@ Proof using CON.
     { rewrite crE, seq_union_l, seq_union_r. rewrite WWHB.
       basic_solver. }
     arewrite (ppot ⊆ hbt).
-    { unfold TSO.hb. eauto with hahn. }
+    { unfold TSOM.hb. eauto with hahn. }
     arewrite (rfe ⊆ hbt).
     rewrite unionK.
     arewrite (⦗R⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ hbt^?).
@@ -282,12 +296,12 @@ Qed.
 
 Lemma eco_in : eco ⊆ sb ∪ hbt⁺ ⨾ sb^?.
 Proof using.
-unfold Execution_eco.eco.
+unfold Eco.eco.
 rewrite rfi_union_rfe.
 arewrite (rfi ⊆ sb).
 rewrite ct_begin.
 rewrite rt_begin.
-unfold TSO.hb.
+unfold TSOM.hb.
 basic_solver 40.
 Qed.
 
@@ -299,7 +313,7 @@ rewrite (wf_ecoD WF), !seqA.
 rewrite eco_in.
 rewrite hb_in.
 arewrite (ppot ∪ rfe ⊆ hbt).
-unfold TSO.hb; basic_solver 12.
+unfold TSOM.hb; basic_solver 12.
 relsf; unionL.
 1: by unionR left; basic_solver 21.
 all: unionR right.
@@ -308,8 +322,8 @@ all: unionR right.
 - rewrite !seqA.
 rewrite (dom_r (wf_ct_hbD WF)) at 1; rewrite !seqA.
 arewrite (⦗RW⦘ ⨾ sb^? ⨾ ⦗RW⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
-arewrite (ppot^? ⊆ hbt^?) by (unfold TSO.hb; basic_solver 12).
+rewrite TSOM.ppo_alt; basic_solver 21.
+arewrite (ppot^? ⊆ hbt^?) by (unfold TSOM.hb; basic_solver 12).
 arewrite (hbt⁺ ⊆ hbt＊) at 1.
 relsf; type_solver 21.
 
@@ -318,25 +332,25 @@ relsf; type_solver 21.
 rewrite (dom_r (wf_ct_hbD WF)) at 1; rewrite !seqA.
 arewrite_id !⦗RW⦘; rels.
 arewrite (⦗R⦘ ⨾ sb^? ⨾ sb ⨾ sb^? ⨾ ⦗W⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
-arewrite (ppot^? ⊆ hbt^?) by (unfold TSO.hb; basic_solver 12).
+rewrite TSOM.ppo_alt; basic_solver 21.
+arewrite (ppot^? ⊆ hbt^?) by (unfold TSOM.hb; basic_solver 12).
 arewrite (hbt⁺ ⊆ hbt＊) at 1.
 relsf; type_solver 21.
 - rewrite !seqA.
 arewrite (⦗R⦘ ⨾ sb^? ⨾ ⦗RW⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
-arewrite (ppot^? ⊆ hbt^?) by (unfold TSO.hb; basic_solver 12).
+rewrite TSOM.ppo_alt; basic_solver 21.
+arewrite (ppot^? ⊆ hbt^?) by (unfold TSOM.hb; basic_solver 12).
 arewrite (hbt⁺ ⊆ hbt＊) at 1.
 relsf; type_solver 21.
 - rewrite !seqA.
 arewrite (⦗R⦘ ⨾ sb^? ⨾ ⦗RW⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
-arewrite (ppot^? ⊆ hbt^?) by (unfold TSO.hb; basic_solver 12).
+rewrite TSOM.ppo_alt; basic_solver 21.
+arewrite (ppot^? ⊆ hbt^?) by (unfold TSOM.hb; basic_solver 12).
 arewrite (hbt⁺ ⊆ hbt＊) at 1.
 rewrite (dom_r (wf_ct_hbD WF)) at 1; rewrite !seqA.
 arewrite (⦗RW⦘ ⨾ sb^? ⨾ ⦗RW⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ppot^?).
-rewrite TSO.ppo_alt; basic_solver 21.
-arewrite (ppot^? ⊆ hbt^?) by (unfold TSO.hb; basic_solver 12).
+rewrite TSOM.ppo_alt; basic_solver 21.
+arewrite (ppot^? ⊆ hbt^?) by (unfold TSOM.hb; basic_solver 12).
 arewrite (hbt⁺ ⊆ hbt＊) at 1.
 relsf; type_solver 21.
 Qed.
@@ -361,7 +375,7 @@ rewrite !seqA; relsf.
 arewrite_id  ⦗MFENCE⦘ at 2.
 relsf.
 arewrite (⦗RW⦘ ⨾ sb ⨾ ⦗MFENCE⦘ ⨾ sb ⨾ ⦗RW⦘ ⊆ fence).
-arewrite (fence ⊆ hbt^?) by (unfold TSO.hb; basic_solver 12).
+arewrite (fence ⊆ hbt^?) by (unfold TSOM.hb; basic_solver 12).
 arewrite (hbt⁺ ⊆ hbt＊ ) at 1.
 relsf; basic_solver 21.
 Qed.
@@ -386,7 +400,7 @@ Proof using CON.
   arewrite (⦗R⦘ ⨾ sb^? ⨾ ⦗MFENCE⦘ ⊆ ⦗R⦘ ⨾ sb ⨾ ⦗MFENCE⦘) by type_solver. 
   unionR right.
   arewrite (ppot ∪ rfe ⊆ hbt).
-  { unfold TSO.hb. basic_solver 10. }
+  { unfold TSOM.hb. basic_solver 10. }
   basic_solver 10.
 Qed.
 
@@ -412,10 +426,10 @@ Qed.
 (*   arewrite (co ∪ fr ⊆ ⦗RW⦘ ⨾ hbt ⨾ ⦗W⦘). *)
 (*   { rewrite wf_coD; [|by apply CON]. *)
 (*     rewrite wf_frD; [|by apply CON]. *)
-(*     unfold TSO.hb. basic_solver 10. } *)
+(*     unfold TSOM.hb. basic_solver 10. } *)
 (*   rewrite hb_in. *)
 (*   arewrite (ppot ∪ rfe ⊆ hbt). *)
-(*   { unfold TSO.hb. basic_solver 10. } *)
+(*   { unfold TSOM.hb. basic_solver 10. } *)
 (*   rewrite crE with (r:=⦗F⦘ ⨾ (sb ∪ sb^? ⨾ ⦗W⦘ ⨾ hbt⁺ ⨾ ⦗R⦘ ⨾ sb^?)). *)
 (*   rewrite crE with (r:=(sb ∪ sb^? ⨾ ⦗W⦘ ⨾ hbt⁺ ⨾ ⦗R⦘ ⨾ sb^?) ⨾ ⦗F⦘). *)
 (*   rewrite !seq_union_r, !seq_union_l, !seq_id_l, !seqA. *)
@@ -438,8 +452,8 @@ Qed.
 (*   sin_rewrite !RsbpW. *)
 (*   assert (⦗R⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ hbt) as RsbW. *)
 (*   { arewrite (⦗R⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ppot). *)
-(*     2: unfold TSO.hb; basic_solver 10. *)
-(*     unfold TSO.ppo. *)
+(*     2: unfold TSOM.hb; basic_solver 10. *)
+(*     unfold TSOM.ppo. *)
 (*     unfolder. ins. desf. splits; auto. *)
 (*     intros HH. desf. *)
 (*     type_solver. } *)
@@ -449,8 +463,8 @@ Qed.
 (*     unionL. *)
 (*     { basic_solver. } *)
 (*     arewrite (⦗W⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ppot). *)
-(*     2: unfold TSO.hb; basic_solver 10. *)
-(*     unfold TSO.ppo. *)
+(*     2: unfold TSOM.hb; basic_solver 10. *)
+(*     unfold TSOM.ppo. *)
 (*     unfolder. ins. desf. splits; auto. *)
 (*     intros HH. desf. *)
 (*     type_solver. } *)
@@ -460,8 +474,8 @@ Qed.
 (*     unionL. *)
 (*     { basic_solver. } *)
 (*     arewrite (⦗R⦘ ⨾ sb ⨾ ⦗RW⦘ ⊆ ppot). *)
-(*     2: unfold TSO.hb; basic_solver 10. *)
-(*     unfold TSO.ppo. *)
+(*     2: unfold TSOM.hb; basic_solver 10. *)
+(*     unfold TSOM.ppo. *)
 (*     unfolder. ins. desf; splits; auto. *)
 (*     all: intros HH; desf. *)
 (*     all: type_solver. } *)
@@ -486,9 +500,9 @@ Proof using CON.
   arewrite (rfe ⊆ hbt⁺).
   rewrite (ar_int_in_sb WF); relsf.
   arewrite (⦗R⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ppot).
-  { rewrite TSO.ppo_alt. basic_solver 21. }
+  { rewrite TSOM.ppo_alt. basic_solver 21. }
   arewrite (ppot ⊆ hbt⁺).
-  { unfold TSO.hb. rewrite <- ct_step. basic_solver 12. }
+  { unfold TSOM.hb. rewrite <- ct_step. basic_solver 12. }
   rewrite unionA; rels.
   apply acyclic_union1.
   2: { red; rels; eapply CON. }
@@ -499,7 +513,7 @@ Proof using CON.
     arewrite_id ⦗MFENCE⦘ at 1.
     relsf.
     arewrite (⦗RW⦘ ⨾ sb ⨾ ⦗MFENCE⦘ ⨾ sb ⨾ ⦗RW⦘ ⊆ fence).
-    arewrite (fence ⊆ hbt^?) by (unfold TSO.hb; basic_solver 12).
+    arewrite (fence ⊆ hbt^?) by (unfold TSOM.hb; basic_solver 12).
     rels.
     red; rels; eapply CON. }
   rewrite ct_psct; relsf.
@@ -509,7 +523,7 @@ Proof using CON.
   rewrite !seqA; relsf.
   arewrite (⦗RW⦘ ⨾ sb ⨾ ⦗MFENCE⦘ ⨾ sb^? ⨾ ⦗RW⦘ ⊆ fence).
   case_refl _; [type_solver|vauto].
-  arewrite (fence ⊆ hbt^?) by (unfold TSO.hb; basic_solver 12).
+  arewrite (fence ⊆ hbt^?) by (unfold TSOM.hb; basic_solver 12).
   arewrite (hbt⁺ ⊆ hbt＊ ) at 2.
   relsf.
   arewrite (sb^? ⨾ ⦗MFENCE⦘ ⨾ sb ⊆ sb^?).
@@ -520,7 +534,7 @@ Proof using CON.
   rewrite (wf_ct_hbD WF); rotate 1.
   arewrite (⦗RW⦘ ⨾ sb^? ⨾ ⦗MFENCE⦘ ⨾ sb ⨾ ⦗RW⦘ ⊆ fence).
   case_refl _; [type_solver|vauto].
-  arewrite (fence ⊆ hbt^?) by (unfold TSO.hb; basic_solver 12).
+  arewrite (fence ⊆ hbt^?) by (unfold TSOM.hb; basic_solver 12).
   rels.
   red; rels; eapply CON.
 Qed.
@@ -560,7 +574,7 @@ Proof using CON.
        { rewrite crE. rewrite seq_union_l, seq_union_r.
          unionL; [basic_solver|].
          rewrite crE. unionR right. rewrite !seqA.
-         unfold TSO.hb, TSO.fence. eauto with hahn. }
+         unfold TSOM.hb, TSOM.fence. eauto with hahn. }
        rewrite ct_step with (r:=hbt) at 1.
        rewrite ct_cr. red. rewrite ct_of_ct.
        apply CON. }
@@ -591,7 +605,7 @@ Qed.
 Lemma fsc_hb_rw_in_ehbt : ⦗MFENCE⦘ ⨾ hb ⨾ ⦗RW⦘ ⊆ ehbt⁺.
 Proof using CON.
   assert (ppot ∪ rfe ⊆ hbt) as EE.
-  { unfold TSO.hb. unionL; eauto 10 with hahn. }
+  { unfold TSOM.hb. unionL; eauto 10 with hahn. }
   assert (⦗MFENCE⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ⦗MFENCE⦘ ⨾ sb) as AA
     by type_solver 10.
   assert (⦗R⦘ ⨾ sb^? ⨾ ⦗MFENCE⦘ ⊆ sb ⨾ ⦗MFENCE⦘) as BB
@@ -606,8 +620,8 @@ Proof using CON.
   { rewrite !crE.
     rewrite !seq_union_l, !seq_union_r.
     apply union_mori; [basic_solver|].
-    unfold TSO.hb. repeat (unionR left).
-    unfold TSO.ppo. unfolder. ins. desf.
+    unfold TSOM.hb. repeat (unionR left).
+    unfold TSOM.ppo. unfolder. ins. desf.
     all: splits; auto; intros HH; desf.
     all: type_solver. }
   arewrite (⦗MFENCE⦘ ⨾ sb ⊆ ehbt).
@@ -621,7 +635,7 @@ Qed.
 Lemma rw_hb_fsc_in_ehbt : ⦗RW⦘ ⨾ hb ⨾ ⦗MFENCE⦘ ⊆ ehbt⁺.
 Proof using CON.
   assert (ppot ∪ rfe ⊆ hbt) as EE.
-  { unfold TSO.hb. unionL; eauto 10 with hahn. }
+  { unfold TSOM.hb. unionL; eauto 10 with hahn. }
   assert (⦗MFENCE⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ⦗MFENCE⦘ ⨾ sb) as AA
     by type_solver 10.
   assert (⦗R⦘ ⨾ sb^? ⨾ ⦗MFENCE⦘ ⊆ sb ⨾ ⦗MFENCE⦘) as BB
@@ -636,8 +650,8 @@ Proof using CON.
     rewrite !seq_union_l, !seq_union_r.
     apply union_mori; [basic_solver|].
     arewrite (⦗RW⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ppot).
-    2: { unfold TSO.hb. eauto with hahn. }
-    unfold TSO.ppo.
+    2: { unfold TSOM.hb. eauto with hahn. }
+    unfold TSOM.ppo.
     unfolder. ins. desf.
     all: splits; auto.
     all: intros HH; type_solver. }
@@ -651,7 +665,7 @@ Qed.
 Lemma fsc_hb_fsc_in_ehbt : ⦗MFENCE⦘ ⨾ hb ⨾ ⦗MFENCE⦘ ⊆ ehbt⁺.
 Proof using CON.
   assert (ppot ∪ rfe ⊆ hbt) as EE.
-  { unfold TSO.hb. unionL; eauto 10 with hahn. }
+  { unfold TSOM.hb. unionL; eauto 10 with hahn. }
   assert (⦗MFENCE⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ⦗MFENCE⦘ ⨾ sb) as AA
     by type_solver 10.
   assert (⦗R⦘ ⨾ sb^? ⨾ ⦗MFENCE⦘ ⊆ sb ⨾ ⦗MFENCE⦘) as BB
@@ -674,7 +688,7 @@ Qed.
 Lemma psc_f_in_ehbt : psc_f ⊆ ehbt⁺.
 Proof using CON.
   assert (ppot ∪ rfe ⊆ hbt) as EE.
-  { unfold TSO.hb. unionL; eauto 10 with hahn. }
+  { unfold TSOM.hb. unionL; eauto 10 with hahn. }
   assert (⦗MFENCE⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ ⦗MFENCE⦘ ⨾ sb) as AA
     by type_solver 10.
   assert (⦗R⦘ ⨾ sb^? ⨾ ⦗MFENCE⦘ ⊆ sb ⨾ ⦗MFENCE⦘) as BB
@@ -712,7 +726,7 @@ Proof using CON.
   arewrite (rfi^? ⊆ sb^?).
   rewrite sb_in_hb.
   sin_rewrite rewrite_trans_seq_cr_l.
-  2: { unfold imm_hb.hb. apply transitive_ct. }
+  2: { unfold Hb.hb. apply transitive_ct. }
   rewrite rw_hb_fsc_in_ehbt.
   arewrite (hbt ⊆ ehbt).
   rewrite rt_ct. apply ct_ct.
@@ -741,7 +755,7 @@ Qed.
 Lemma ppot_in_ehbt : ppot ⊆ ehbt.
 Proof using.
   arewrite (ppot ⊆ hbt).
-  { unfold TSO.hb. eauto with hahn. }
+  { unfold TSOM.hb. eauto with hahn. }
   unfold ehbt. basic_solver.
 Qed.
 
@@ -763,7 +777,7 @@ Proof using CON.
     unionL.
     { rewrite <- ct_step. unfold ehbt. basic_solver 10. }
     arewrite (⦗RW⦘ ⨾ sb ⨾ ⦗RW⦘ ⊆ ppot ∪ ⦗W⦘ ⨾ sb ⨾ ⦗R⦘).
-    { unfold TSO.ppo.
+    { unfold TSOM.ppo.
       unfolder. ins. desf.
       2: { right. splits; auto. }
       all: left; splits; auto.
@@ -797,7 +811,7 @@ Proof using CON.
       { unfold ehbt. basic_solver. }
       arewrite (⦗RW⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ ppot).
       2: rewrite ppot_in_ehbt; basic_solver.
-      unfold TSO.ppo. unfolder. ins. desf; splits; auto.
+      unfold TSOM.ppo. unfolder. ins. desf; splits; auto.
       all: intros HH; type_solver 10. }
     arewrite (⦗R⦘ ⨾ sb^? ⨾ ⦗Sc⦘ ⊆ ehbt^?).
     { rewrite !crE.
@@ -811,10 +825,10 @@ Proof using CON.
       { unfold ehbt. basic_solver 10. }
       arewrite (⦗R⦘ ⨾ sb ⨾ ⦗RW⦘ ⊆ ppot).
       2: rewrite ppot_in_ehbt; basic_solver.
-      unfold TSO.ppo. unfolder. ins. desf; splits; auto.
+      unfold TSOM.ppo. unfolder. ins. desf; splits; auto.
       all: intros HH; type_solver 10. }
     arewrite (ppot ∪ rfe ⊆ ehbt).
-    { unfold ehbt, TSO.hb. eauto 10 with hahn. }
+    { unfold ehbt, TSOM.hb. eauto 10 with hahn. }
     rewrite ct_cr. by rewrite cr_ct. }
   assert (hb ⨾ hb ⨾ hb ⊆ hb) as HBA.
   { generalize (@hb_trans G). basic_solver. }
@@ -930,5 +944,7 @@ Proof using CON.
   { rewrite inclusion_seq_eqv_l. by apply fsupp_rf. }
   by apply fsupp_sb.
 Qed. 
+
+End immToTSO.
 
 End immToTSO.

@@ -19,6 +19,22 @@ Require Import FairExecution.
 
 Set Implicit Arguments.
 
+Module immToPower (Val : ValueSig) (Ev : Events Val).
+
+Module Import RF := imm_rfppo Val Ev.
+Module Import Fair := RF.Fair.
+Module Import FairEx := Fair.FairEx.
+Module Import Imm := RF.Imm.
+Module Import Hb := Imm.Hb.
+Module Import Ppo := Imm.Ppo.
+Module Import Bob := Imm.Bob.
+Module Import Eco := Imm.Eco.
+Module Import Ex := Imm.Ex.
+Module Import Fences := Power_fencesWithEco Val Ev Eco.
+Module Import PowerPpo := Power_ppoWithFences Val Ev Eco Fences.
+Module Import PowerM := PowerWithPpo Val Ev Eco Fences PowerPpo.
+Import Ev.
+
 Section immToPower.
 
 Variable G : execution.
@@ -60,13 +76,13 @@ Notation "'same_loc'" := (same_loc lab).
 
 
 (* imm *)
-Notation "'sw'" := (sw G).
-Notation "'release'" := (release G).
-Notation "'rs'" := (rs G).
-Notation "'hb'" := (hb G).
-Notation "'ppo'" := (ppo G).
-Notation "'psc'" := (psc G).
-Notation "'bob'" := (bob G).
+Notation "'sw'" := (Hb.sw G).
+Notation "'release'" := (Hb.release G).
+Notation "'rs'" := (Hb.rs G).
+Notation "'hb'" := (Hb.hb G).
+Notation "'ppo'" := (Ppo.ppo G).
+Notation "'psc'" := (Imm.psc G).
+Notation "'bob'" := (Bob.bob G).
 
 Notation "'Pln'" := (fun a => is_true (is_only_pln lab a)).
 Notation "'Rlx'" := (fun a => is_true (is_rlx lab a)).
@@ -77,14 +93,14 @@ Notation "'Acq/Rel'" := (fun a => is_true (is_ra lab a)).
 Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 
 (* power *)
-Notation "'ctrli'" := (ctrli G).
-Notation "'sync'" := (sync G).
-Notation "'lwsync'" := (lwsync G).
-Notation "'fence'" := (fence G).
-Notation "'ppop'" := (Power_ppo.ppo G).
-Notation "'hbp'" := (Power.hb G).
-Notation "'S'" := (S G).
-Notation "'detour'" := (detour G).
+Notation "'ctrli'" := (PowerPpo.ctrli G).
+Notation "'sync'" := (Fences.sync G).
+Notation "'lwsync'" := (Fences.lwsync G).
+Notation "'fence'" := (Fences.fence G).
+Notation "'ppop'" := (PowerPpo.ppo G).
+Notation "'hbp'" := (PowerM.hb G).
+Notation "'S'" := (PowerM.S G).
+Notation "'detour'" := (Ex.detour G).
 
 Notation "'F^isync'" := (F ∩₁ (fun a => is_true (is_rlx lab a))).
 Notation "'F^lwsync'" := (F ∩₁ (fun a => is_true (is_ra lab a))).
@@ -146,7 +162,7 @@ Qed.
 
 Lemma rs_in_rs_big: rs ⊆ rs_big.
 Proof using CON.
-unfold imm_hb.rs, rs_big.
+unfold Hb.rs, rs_big.
 relsf; unionL.
 rewrite rtE, <- ct_step; basic_solver.
 rewrite rtE; relsf; unionL; [basic_solver 12|].
@@ -163,7 +179,7 @@ Definition sw_big := ⦗Rel⦘ ⨾ (⦗F⦘ ⨾ sb)^? ⨾ rs_big ⨾ rf ⨾ (sb 
 
 Lemma sw_in_sw_big : sw ⊆ sw_big.
 Proof using CON.
-unfold imm_hb.sw, imm_hb.release, sw_big.
+unfold Hb.sw, Hb.release, sw_big.
 rewrite rs_in_rs_big.
 relsf; unionL.
 by arewrite (rfi ⊆ rf).
@@ -189,7 +205,7 @@ Lemma sw_no_w_rel :
   sw ⊆ ⦗F ∩₁ Rel⦘ ⨾ sb ⨾ rs_big ⨾ rf ⨾ (⦗R ∩₁ Acq⦘ ∪ sb ⨾ ⦗F ∩₁ Acq⦘).
 Proof using CON NO_W_REL.
 rewrite sw_in_sw_big.
-unfold  sw_big, imm_hb.release.
+unfold sw_big, Hb.release.
 rewrite (dom_l (wf_rs_bigD)).
 case_refl (⦗F⦘ ⨾ sb) at 1.
 by sin_rewrite no_w_rel; basic_solver.
@@ -209,7 +225,7 @@ Qed.*)
 Lemma bob_no_w_rel : 
   bob ⊆ ⦗R ∩₁ Acq⦘ ⨾ sb ∪ sb ⨾ ⦗F^lwsync⦘ ∪ ⦗F^lwsync⦘ ⨾ sb.
 Proof using NO_W_REL.
-unfold imm_bob.bob, imm_bob.fwbob.
+unfold Bob.bob, Bob.fwbob.
 sin_rewrite !NO_W_REL.
 basic_solver 21.
 Qed.
@@ -228,7 +244,7 @@ Qed.
 
 Lemma rmw_in_deps: rmw ⊆ deps.
 Proof using RMW_DEPS.
-rewrite RMW_DEPS. unfold Execution.deps. eauto with hahn.
+rewrite RMW_DEPS. unfold Ex.deps. eauto with hahn.
 Qed.
 
 Lemma rmw_sb_in_deps: rmw ⨾ sb^? ⊆ deps.
@@ -253,7 +269,7 @@ Lemma r_acq_sb: ⦗R∩₁Acq⦘ ⨾ sb ⨾ ⦗RW⦘ ⊆ rmw ∪ ctrli ⨾ ⦗RW
 Proof using CON NO_W_REL RMW_CTRL_FAIL R_ACQ_SB SC_F.
   arewrite (⦗R ∩₁ Acq⦘ ⊆ ⦗R⦘ ⨾ ⦗R ∩₁ Acq⦘) by basic_solver.
   sin_rewrite R_ACQ_SB.
-  unfold Power_ppo.ctrli.
+  unfold PowerPpo.ctrli.
   rewrite (wf_ctrlD WF) at 1.
   rewrite !seq_union_l, !seq_union_r, !seqA.
   arewrite (⦗F^isync⦘ ⨾ sb^? ⨾ ⦗RW⦘ ⊆ ⦗F^isync⦘ ⨾ sb ⨾ ⦗RW⦘) by type_solver 21.
@@ -308,7 +324,7 @@ Qed.
 Lemma sb_sw_in_S: sb^? ⨾ (sw \ sb) ⊆ S.
 Proof using CON DATA_RMW NO_W_REL RMW_CTRL_FAIL RMW_DEPS R_ACQ_SB SC_F.
 rewrite sw_no_w_rel.
-unfold Power.S.
+unfold PowerM.S.
 rewrite (rs_big_alt).
 arewrite (sb ∩ same_loc ⊆ sb).
 arewrite (sb ⨾ ⦗W⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ sb) by generalize (@sb_trans G); basic_solver.
@@ -329,7 +345,7 @@ Qed.
 Lemma sw_sb_in_S: sb^? ⨾ (sw \ sb) ⨾ sb ⨾ ⦗RW⦘ ⊆ S.
 Proof using CON DATA_RMW NO_W_REL RMW_CTRL_FAIL RMW_DEPS R_ACQ_SB SC_F.
   rewrite sw_no_w_rel.
-  unfold Power.S.
+  unfold PowerM.S.
   rewrite (rs_big_alt).
   arewrite (sb ∩ same_loc ⊆ sb).
   arewrite (sb ⨾ ⦗W⦘ ⨾ sb^? ⨾ ⦗W⦘ ⊆ sb) by generalize (@sb_trans G); basic_solver.
@@ -403,7 +419,7 @@ Qed.
 
 Lemma hb_in_S_sb : hb ⊆ sb ∪ S ⨾ sb^?.
 Proof using CON DATA_RMW NO_W_REL RMW_CTRL_FAIL RMW_DEPS R_ACQ_SB SC_F.
-rewrite hb_in_sb_swe, path_union.
+rewrite Hb.hb_in_sb_swe, path_union.
 rewrite (ct_of_trans (@sb_trans G)), (rt_of_trans (@sb_trans G)).
 rewrite sb_sw_in_S.
 rewrite (ct_of_trans (S_trans WF)).
@@ -428,7 +444,7 @@ Qed.
 Lemma rw_hb_f_in_hbp : ⦗RW⦘ ⨾ hb ⨾  ⦗F^sync⦘  ⊆ sb ⨾  ⦗F^sync⦘ ∪ fence ⨾ hbp＊ ⨾ sb ⨾ ⦗F^sync⦘.
 Proof using CON DATA_RMW NO_W_REL RMW_CTRL_FAIL RMW_DEPS R_ACQ_SB SC_F.
 rewrite hb_in_S_sb.
-unfold Power.S.
+unfold PowerM.S.
 relsf; unionL; [basic_solver|].
 rewrite !seqA.
 arewrite (⦗RW⦘ ⨾ sb^? ⨾ ⦗F^lwsync⦘ ⊆ ⦗RW⦘ ⨾ sb ⨾ ⦗F^lwsync⦘) by type_solver.
@@ -540,14 +556,14 @@ Proof using CON DATA_RMW DEPS_RMW_FAIL NO_W_REL RMW_CTRL_FAIL RMW_DEPS R_ACQ_SB 
   + arewrite_id (⦗W⦘) at 1; rels.
     sin_rewrite DATA_RMW.
     unionR left -> left.
-    unfold imm_ppo.ppo.
+    unfold Ppo.ppo.
     hahn_frame.
     rewrite ct_end.
     apply inclusion_seq_mon; [apply inclusion_rt_rt|]; basic_solver 42.
   + arewrite (ctrl ⨾ ⦗W⦘ ⨾ ⦗W_ex⦘ ⨾ sb ⊆ ctrl).
       by generalize (ctrl_sb WF); basic_solver.
       unionR left -> left.
-      unfold imm_ppo.ppo.
+      unfold Ppo.ppo.
       hahn_frame.
       rewrite ct_end.
       apply inclusion_seq_mon; [apply inclusion_rt_rt|]; basic_solver 42.
@@ -555,7 +571,7 @@ Proof using CON DATA_RMW DEPS_RMW_FAIL NO_W_REL RMW_CTRL_FAIL RMW_DEPS R_ACQ_SB 
     basic_solver.
     generalize (@sb_trans G); ins; relsf.
     unionR left -> left.
-    unfold imm_ppo.ppo.
+    unfold Ppo.ppo.
     hahn_frame.
     rewrite ct_end.
     apply inclusion_seq_mon; [apply inclusion_rt_rt|]; basic_solver 42.
@@ -692,7 +708,7 @@ arewrite (⦗R ∩₁ Acq⦘ ⨾ sb ∪ sb ⨾ ⦗F^lwsync⦘ ∪ ⦗F^lwsync⦘
    ∪ ⦗W_ex⦘ ⨾ sb ⨾ ⦗W⦘ ∪ ⦗W_ex⦘ ⨾ rfi ⨾ ⦗R ∩₁ Acq⦘ ∪ ⦗R ∩₁ Acq⦘ ⨾ sb).
 basic_solver 12.
 rewrite path_absorb_rt.
-2: by right; arewrite (rfi ⊆ sb); rewrite (ppo_in_sb WF), detour_in_sb; generalize (@sb_trans G); basic_solver 22.
+2: by right; arewrite (rfi ⊆ sb); rewrite (Ppo.ppo_in_sb WF), detour_in_sb; generalize (@sb_trans G); basic_solver 22.
 2: by apply transitiveI; generalize (@sb_trans G); basic_solver 22.
 relsf; unionL; rewrite ?seqA.
 hahn_frame; apply inclusion_t_t; basic_solver 12.
@@ -728,7 +744,7 @@ relsf; unionL.
   arewrite (rfi ⊆ sb).
   assert ((ppo ∪ ctrli ∪ detour)⁺ ⊆ sb) as AA.
   { rewrite (ctrli_in_sb WF), detour_in_sb. 
-    rewrite (ppo_in_sb WF).
+    rewrite (Ppo.ppo_in_sb WF).
     generalize (@sb_trans G). relsf. }
   arewrite ((ppo ∪ ctrli ∪ detour)＊ ⊆ sb^?).
   { rewrite rtE. rewrite AA. basic_solver. }
@@ -750,7 +766,7 @@ relsf; unionL.
   rewrite (r_ct_ppo_detour_ppo WF); vauto.
 - rewrite (ppo_alt WF RMW_DEPS RMW_CTRL_FAIL' DATA_RMW DEPS_RMW_FAIL).
   rewrite !(r_deps_rfi WF).
-  rewrite (Power_ppo.ppo_in_sb WF), (ctrli_in_sb WF), detour_in_sb.
+  rewrite (PowerPpo.ppo_in_sb WF), (ctrli_in_sb WF), detour_in_sb.
   arewrite (⦗W_ex⦘ ⨾ sb ⨾ ⦗W⦘ ⊆ sb) by basic_solver.
   rels.
   rewrite ct_end.
@@ -799,7 +815,7 @@ Lemma no_hbp_to_init:
   hbp ≡ hbp ⨾ ⦗set_compl is_init⦘.
 Proof using CON.
   split; [| basic_solver]. apply domb_rewrite. 
-  unfold "hbp". rewrite Power_ppo.ppo_in_sb, fence_in_sb; [| by apply WF].
+  unfold "hbp". rewrite PowerPpo.ppo_in_sb, fence_in_sb; [| by apply WF].
   rewrite rfe_in_rf. rewrite no_sb_to_init, no_rf_to_init; [| by apply WF].
   basic_solver.
 Qed.
@@ -830,7 +846,7 @@ Proof using CON DATA_RMW DEPS_RMW_FAIL G NO_W_REL RMW_CTRL_FAIL RMW_DEPS R_ACQ_S
     apply inclusion_seq_eqv_l. }
   rewrite ct_unionE.
   assert (fsupp (⦗set_compl is_init⦘ ⨾ ar_int G)⁺) as AA.
-  { rewrite imm_ppo.ar_int_in_sb; auto.
+  { rewrite Ppo.ar_int_in_sb; auto.
     rewrite ct_of_trans; [by apply fsupp_sb| basic_solver]. }
   apply fsupp_union; auto.
   apply fsupp_seq.
@@ -863,5 +879,7 @@ Proof using CON DATA_RMW DEPS_RMW_FAIL G NO_W_REL RMW_CTRL_FAIL RMW_DEPS R_ACQ_S
   rewrite <- rt_of_rt with (r := ⦗_⦘ ⨾ hbp). apply clos_refl_trans_mori.
   rewrite <- rt_unit. hahn_frame. red. ins. by apply rt_step. 
 Qed.
+
+End immToPower.
 
 End immToPower.

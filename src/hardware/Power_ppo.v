@@ -4,15 +4,18 @@
 From hahn Require Import Hahn.
 Require Import Events.
 Require Import Execution.
+Require Import Execution_eco.
 Require Import Power_fences.
 
 Set Implicit Arguments.
 
-Module Power_ppo
+Module Power_ppoWithFences
     (Val : ValueSig)
-    (Ev : Events Val).
+    (Ev : Events Val)
+    (Eco : Execution_ecoSig Val Ev)
+    (Fences : Power_fencesSig Val Ev Eco).
 
-Module Import Fences := Power_fences Val Ev.
+Import Fences.
 Module Import Ex := Fences.Ex.
 
 Section PowerPpoDefs.
@@ -948,4 +951,18 @@ Qed.
 
 End PowerPpoDefs.
 
+End Power_ppoWithFences.
+
+Module Type Power_ppoSig
+    (Val : ValueSig)
+    (Ev : Events Val)
+    (Eco : Execution_ecoSig Val Ev)
+    (Fences : Power_fencesSig Val Ev Eco).
+  Include Power_ppoWithFences Val Ev Eco Fences.
+End Power_ppoSig.
+
+Module Power_ppo (Val : ValueSig) (Ev : Events Val).
+  Module Eco := Execution_eco Val Ev.
+  Module Fences := Power_fencesWithEco Val Ev Eco.
+  Include Power_ppoWithFences Val Ev Eco Fences.
 End Power_ppo.

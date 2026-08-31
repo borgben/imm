@@ -8,11 +8,12 @@ Require Import Execution_eco.
 
 Set Implicit Arguments.
 
-Module Power_fences
+Module Power_fencesWithEco
     (Val : ValueSig)
-    (Ev : Events Val).
+    (Ev : Events Val)
+    (Eco : Execution_ecoSig Val Ev).
 
-Module Import Eco := Execution_eco Val Ev.
+Import Eco.
 Module Import Ex := Eco.Ex.
 
 Section PowerFencesDefs.
@@ -286,4 +287,16 @@ Qed.
 
 End PowerFencesDefs.
 
+End Power_fencesWithEco.
+
+Module Type Power_fencesSig
+    (Val : ValueSig)
+    (Ev : Events Val)
+    (Eco : Execution_ecoSig Val Ev).
+  Include Power_fencesWithEco Val Ev Eco.
+End Power_fencesSig.
+
+Module Power_fences (Val : ValueSig) (Ev : Events Val).
+  Module Eco := Execution_eco Val Ev.
+  Include Power_fencesWithEco Val Ev Eco.
 End Power_fences.

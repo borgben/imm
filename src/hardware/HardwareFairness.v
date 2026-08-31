@@ -3,7 +3,7 @@
 (** * of model-specific "hb" relations.                                       *)
 (******************************************************************************)
 
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 Require Import Events.
 Require Import Execution.
@@ -100,4 +100,4 @@ Proof using.
 Qed.
   
 
-End HardwareFairness. 
+End HardwareFairness.  *)

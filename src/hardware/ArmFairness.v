@@ -3,7 +3,7 @@
 (** * location-finite and memory-fair executions.                             *)
 (******************************************************************************)
 
-From hahn Require Import Hahn.
+(* From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 Require Import Events.
 Require Import Execution.
@@ -224,4 +224,4 @@ Proof using CON.
 Qed. 
 
 
-End immToARMFairness. 
+End immToARMFairness.  *)

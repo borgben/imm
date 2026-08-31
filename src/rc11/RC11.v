@@ -10,6 +10,14 @@ Require Import imm_s.
 
 Set Implicit Arguments.
 
+Module RC11 (Val : ValueSig) (Ev : Events Val).
+
+Module Import ImmS := imm_s Val Ev.
+Module Import SHb := ImmS.SHbModel.
+Module Import Eco := ImmS.Eco.
+Module Import Ex := ImmS.Ex.
+Import Ev.
+
 Section RC11.
 
 Variable G : execution.
@@ -21,8 +29,8 @@ Notation "'rf'" := (rf G).
 Notation "'co'" := (co G).
 Notation "'rmw'" := (rmw G).
 Notation "'fr'" := (fr G).
-Notation "'eco'" := (eco G).
-Notation "'hb'" := (hb G).
+Notation "'eco'" := (Eco.eco G).
+Notation "'hb'" := (SHb.hb G).
 
 Notation "'R'" := (fun a => is_true (is_r lab a)).
 Notation "'W'" := (fun a => is_true (is_w lab a)).
@@ -42,11 +50,12 @@ Notation "'Sc'" := (fun a => is_true (is_sc lab a)).
 (******************************************************************************)
 
 Definition rc11_consistent :=
-  ⟪ Comp : complete G ⟫ /\
-  ⟪ Coh : coherence G ⟫ /\
-  ⟪ Cat  : rmw_atomicity G ⟫ /\
-  ⟪ Csc : acyclic (psc_f G ∪ psc_base G) ⟫ /\
+  ⟪ Comp : Ex.complete G ⟫ /\
+  ⟪ Coh : SHb.coherence G ⟫ /\
+  ⟪ Cat  : Ex.rmw_atomicity G ⟫ /\
+  ⟪ Csc : acyclic (ImmS.psc_f G ∪ ImmS.psc_base G) ⟫ /\
   ⟪ Csbrf : acyclic (sb ∪ rf) ⟫.
 
 End RC11.
 
+End RC11.

@@ -10,13 +10,16 @@ Require Import Power_ppo.
 
 Set Implicit Arguments.
 
-Module Power
+Module PowerWithPpo
     (Val : ValueSig)
-    (Ev : Events Val).
+    (Ev : Events Val)
+    (Eco : Execution_ecoSig Val Ev)
+    (Fences : Power_fencesSig Val Ev Eco)
+    (Ppo : Power_ppoSig Val Ev Eco Fences).
 
-Module Import Ppo := Power_ppo Val Ev.
-Module Import Fences := Ppo.Fences.
-Module Import Eco := Fences.Eco.
+Import Ppo.
+Import Fences.
+Import Eco.
 Module Import Ex := Eco.Ex.
 
 Section PowerDefs.
@@ -504,4 +507,20 @@ Qed.
 
 End PowerDefs.
 
+End PowerWithPpo.
+
+Module Type PowerSig
+    (Val : ValueSig)
+    (Ev : Events Val)
+    (Eco : Execution_ecoSig Val Ev)
+    (Fences : Power_fencesSig Val Ev Eco)
+    (Ppo : Power_ppoSig Val Ev Eco Fences).
+  Include PowerWithPpo Val Ev Eco Fences Ppo.
+End PowerSig.
+
+Module Power (Val : ValueSig) (Ev : Events Val).
+  Module Eco := Execution_eco Val Ev.
+  Module Fences := Power_fencesWithEco Val Ev Eco.
+  Module Ppo := Power_ppoWithFences Val Ev Eco Fences.
+  Include PowerWithPpo Val Ev Eco Fences Ppo.
 End Power.
