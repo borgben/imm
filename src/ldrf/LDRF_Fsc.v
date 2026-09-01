@@ -20,7 +20,7 @@
 (** |                | fence(sc);            |          |                    *)
 (** +----------------+-----------------------+----------+                    *)
 (*****************************************************************************)
-Require Import Classical Peano_dec.
+(* Require Import Classical Peano_dec.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 
@@ -626,4 +626,4 @@ Proof using All.
   apply -> ac_irr. apply ldrf_condition_ext. 
 Qed. 
   
-End LDRF_Fsc.
+End LDRF_Fsc. *)
