@@ -42,9 +42,7 @@ Record fresh_child_lattice (A : Type) := {
 }.
 
 (* Siblings are distinct identifiers with a common direct parent. *)
-Definition sibling {A : Type} (L : fresh_child_lattice A)
-    (x y : A) : Prop :=
-  x <> y /\
-  exists parent, parent_of L parent x /\ parent_of L parent y.
+Definition sibling {A : Type} (L : fresh_child_lattice A) (x y : A) : Prop := 
+  x <> y /\ exists parent, parent_of L parent x /\ parent_of L parent y.
 
 End Lattice.
