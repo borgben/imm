@@ -3,6 +3,7 @@
 (******************************************************************************)
 
 Require Import List.
+Require Import Lattice. 
 From hahn Require Import Hahn.
 From PromisingLib Require Import Basic Loc.
 From hahnExt Require Import HahnExt.
@@ -21,10 +22,16 @@ Module Type ValueSig.
 
 End ValueSig.
 
-Module Type Events (V : ValueSig). 
+Module Type Events (V : ValueSig).  
 
-Definition thread_id := Basic.Ident.t.
-Definition tid_init := Coq.Numbers.BinNums.xH.
+Parameter thread_id : Type.
+Parameter TID_L : Lattice.fresh_child_lattice thread_id.
+Parameter thread_id_eq_dec :
+  forall x y : thread_id, {x = y} + {x <> y}.
+Parameter thread_id_countable : countable (@set_full thread_id).
+
+Definition tid_init : thread_id :=
+  Lattice.bottom (Lattice.tid_lattice TID_L).
 
 Definition location := Loc.t.
 Definition value : Type := V.t. 
@@ -89,7 +96,7 @@ Qed.
 Lemma eq_dec_actid :
   forall x y : actid, {x = y} + {x <> y}.
 Proof using.
-repeat decide equality.
+repeat decide equality; apply thread_id_eq_dec.
 Qed.
 
 (******************************************************************************)
@@ -702,7 +709,7 @@ Section EventsCountability.
     { Set Printing All.
       unfold location, Loc.Loc.t. apply pos_countable. }
     apply countable_prod.
-    { unfold thread_id, Basic.Ident.t. apply pos_countable. }
+    { apply thread_id_countable. }
     apply nat_countable.
   Qed.
 

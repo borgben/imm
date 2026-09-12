@@ -1,4 +1,5 @@
 Require Import Program.Basics.
+Require Import Lattice. 
 From hahn Require Import Hahn.
 From imm Require Import Execution Events.
 Require Import Lia.
@@ -14,7 +15,8 @@ Import Ex.
 Definition fin_threads (G : execution) := set_finite (Ex.threads_set G).
 
 Definition threads_bound (G: execution) (b: Ev.thread_id) :=
-  forall e (Ge: Ex.acts_set G e), BinPos.Pos.lt (Ev.tid e) b.
+  forall e (Ge: Ex.acts_set G e),
+    Lattice.le (Lattice.tid_lattice Ev.TID_L) (Ev.tid e) b.
 
 Lemma fin_threads_bound G
       (ACTS : forall e : Ev.actid,
@@ -24,28 +26,33 @@ Lemma fin_threads_bound G
 Proof using.
   do 2 red in FIN. desf.
   unfold threads_bound.
-  enough (exists b, forall t, List.In t findom -> BinPos.Pos.lt t b) as [b HH].
+  set (L := Lattice.tid_lattice Ev.TID_L).
+  enough (exists b, forall t, List.In t findom -> Lattice.le L t b) as [b HH].
   { exists b. ins. apply HH. apply FIN. now apply ACTS. }
-  clear. induction findom.
-  { exists BinPos.xH. ins. }
-  desf.
-  exists (Basic.Ident.add (BinPos.Pos.max a b) BinPos.xH).
-  ins. desf.
-  { lia. }
-  etransitivity.
-  { now apply IHfindom. }
-  lia.
+  clear FIN ACTS G.
+  induction findom as [|a rest [b IH]].
+  { exists (Lattice.bottom L). intros t IN. inversion IN. }
+  exists (Lattice.join L a b).
+  assert (BOUNDS : Lattice.le L a (Lattice.join L a b) /\
+                   Lattice.le L b (Lattice.join L a b)).
+  { apply (proj1 (Lattice.join_spec L a b (Lattice.join L a b))).
+    apply Lattice.le_refl. }
+  destruct BOUNDS as [LEFT RIGHT].
+  intros t [EQ | IN].
+  { subst t. exact LEFT. }
+  eapply Lattice.le_trans; [apply IH; exact IN | exact RIGHT].
 Qed.
 
-Lemma BinPos_lt_fin b:
-  set_finite (fun t => BinPos.Pos.lt t b). 
+(* Lemma BinPos_lt_fin b:
+  set_finite (fun t => Lattice.le (Lattice.tid_lattice Ev.TID_L) t b). 
 Proof using.
+  unfold set_finite.  
   exists (map BinPos.Pos.of_nat (List.seq 0 (BinPos.Pos.to_nat b))).
   ins. apply Pnat.Pos2Nat.inj_lt in IN. 
   apply in_map_iff. eexists. splits.
   { by apply Pnat.Pos2Nat.id. }
   apply in_seq. lia.
-Qed. 
+Qed.  *)
 
 Lemma dupE A (l : list A) (DUP: ~ NoDup l) :
   exists l1 a l2 l3, l = l1 ++ a :: l2 ++ a :: l3.
@@ -57,31 +64,25 @@ Proof using.
 Qed.
 
 Lemma has_finite_antichains_sb G
-      (ACTS : forall e : Ev.actid,
-          Ex.acts_set G e -> Ex.threads_set G (Ev.tid e))
+      (ACTS : forall e : Ev.actid, Ex.acts_set G e -> Ex.threads_set G (Ev.tid e))
       (B : fin_threads G):
-  has_finite_antichains (Ex.acts_set G \₁ Ev.is_init)
-                        (⦗set_compl Ev.is_init⦘ ⨾ @Ex.sb G).
-Proof using.
-  edestruct fin_threads_bound as [b HH]; eauto.
-  set (nb := BinPos.Pos.to_nat b).
-  red. exists nb. red. ins.  
+  has_finite_antichains (Ex.acts_set G \₁ Ev.is_init) (⦗set_compl Ev.is_init⦘ ⨾ @Ex.sb G).
+Proof using.  
+  destruct B as [findom FIN]. 
+  red. exists (length findom). red. ins.  
   cut (exists a b, a <> b /\ In a l /\ In b l /\ Ev.tid a = Ev.tid b).
   { intro X; desc.
     destruct (INCL _ X0); destruct (INCL _ X1); desc.
     eapply (@Ex.same_thread G) in X2; unfolder in X2; desf.
-    1: exists a, b0. 2: exists b0, a. 
+    1: exists a, b. 2: exists b, a. 
     all: splits; eauto; basic_solver. }
-  assert (M: incl (map Ev.tid l) (map BinPos.Pos.of_nat (List.seq 0 nb))).
-  { red. intros n IN. rewrite in_map_iff in *. destruct IN as [x [TT IN]]; subst.
-    exists (BinPos.Pos.to_nat (Ev.tid x)). split.
-    { apply Pnat.Pos2Nat.id. }
-    apply in_seq0_iff.
-    subst nb. apply Pnat.Pos2Nat.inj_lt.
-    apply HH. now apply INCL. }
+  assert (M: incl (map Ev.tid l) findom).
+  { intros t IN. apply in_map_iff in IN.
+    destruct IN as [e [EQ IN]]. subst t.
+    apply FIN. apply ACTS. now apply INCL. }
   destruct (classic (NoDup (map Ev.tid l))).
   { eapply NoDup_incl_length in M; ins.
-    rewrite !length_map, length_seq in *. lia. }
+    rewrite length_map in *. lia. }
   apply dupE in H; desf.
   apply map_eq_app_inv in H; desf.
   destruct l2'; ins; desf.
@@ -114,4 +115,3 @@ Proof using.
 Qed.  
 
 End FinThreads.
-  

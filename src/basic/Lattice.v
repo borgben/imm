@@ -9,7 +9,9 @@ Record lattice (A : Type) := {
   le : A -> A -> Prop;
   meet : A -> A -> A;
   join : A -> A -> A;
+  bottom : A;
 
+  bottom_le : forall x, le bottom x;
   le_refl : forall x, le x x;
   le_trans : forall x y z, le x y -> le y z -> le x z;
   le_antisym : forall x y, le x y -> le y x -> x = y;
