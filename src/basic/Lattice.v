@@ -25,7 +25,11 @@ Definition lt {A : Type} (L : lattice A) (x y : A) : Prop := le L x y /\ x <> y.
 Definition incomparable {A : Type} (L : lattice A) (x y : A) : Prop := ~ le L x y /\ ~ le L y x.
 
 Record fresh_child_lattice (A : Type) := {
-  tid_lattice : lattice A;
+  uid_lattice : lattice A;
+
+  (* Every UID has a finite strict causal past. *)
+  finite_strict_lower : forall u, exists predecessors : list A,
+    forall v, lt uid_lattice v u -> In v predecessors;
 
   (* Defines what it means to be a direct parent *)
   parent_of : A -> A -> Prop;
@@ -36,10 +40,10 @@ Record fresh_child_lattice (A : Type) := {
   (* The specification for fresh, restricting the definition of the "fresh_child_function". *)
   fresh_child_spec : forall parent allocated,
     let child := fresh_child parent allocated in
-    parent_of parent child /\ lt tid_lattice parent child /\ ~ In child allocated /\
+    parent_of parent child /\ lt uid_lattice parent child /\ ~ In child allocated /\
     (forall other, In other allocated ->
        parent_of parent other ->
-        incomparable tid_lattice child other)
+        incomparable uid_lattice child other)
 
 }.
 

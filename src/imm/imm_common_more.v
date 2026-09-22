@@ -196,7 +196,7 @@ arewrite_id ⦗F ∩₁ Acq/Rel⦘ at 2.
 generalize (@sb_trans G); ins; relsf.
 Qed.
 
-Lemma W_sb_same_loc_detour WF (SC_PER_LOC: sc_per_loc G) :
+(* Lemma W_sb_same_loc_detour WF (SC_PER_LOC: sc_per_loc G) :
 ⦗fun x => ~ Ev.is_init x⦘ ⨾ ⦗W⦘ ⨾ sb ∩ same_loc ⨾ ⦗W⦘ ⨾ detour ⊆ detour.
 Proof using.
 sin_rewrite (w_sb_loc_w_in_coi WF SC_PER_LOC).
@@ -208,9 +208,9 @@ apply coi_coe; eauto.
 basic_solver.
 - ie_unfolder; unfolder in*; desf.
 eapply (@sb_trans G); eauto.
-Qed.
+Qed. *)
 
-Lemma ct_ar_int_alt3 WF (SC_PER_LOC: sc_per_loc G) : 
+(* Lemma ct_ar_int_alt3 WF (SC_PER_LOC: sc_per_loc G) : 
 (sb ⨾ ⦗W∩₁Rel⦘ ∪ ⦗W∩₁Rel⦘ ⨾ (sb ∩ same_loc) ⨾ ⦗W⦘ ∪
   detour ⨾ (⦗R∩₁Acq⦘ ⨾ sb)^? ∪ 
   ppo  ∪ ⦗W_ex_acq⦘ ⨾ sb ⨾ ⦗W⦘ ∪ ⦗W_ex⦘ ⨾ rfi ⨾ ⦗R ∩₁ Acq⦘ ⨾ sb^?)⁺ ⊆ 
@@ -257,7 +257,7 @@ basic_solver 12.
   * rewrite (dom_l (@wf_ppoD G)) at 1; type_solver.
 * basic_solver 20.
 * basic_solver 20.
-Qed.
+Qed. *)
 
 Lemma ct_ar_int_alt4 WF: 
 (sb ⨾ ⦗W∩₁Rel⦘ ∪
@@ -339,7 +339,7 @@ rewrite path_union. relsf; unionL.
 Qed.
 
 
-Lemma ct_ar_int_alt WF 
+(* Lemma ct_ar_int_alt WF 
 (SC_PER_LOC: sc_per_loc G) : 
 
 (ar_int)⁺ ⊆ 
@@ -367,11 +367,8 @@ rewrite (ct_ar_int_alt3 WF SC_PER_LOC).
 unionL; [basic_solver 12|].
 rewrite (ct_ar_int_alt4 WF).
 rewrite (ct_ar_int_alt5 WF).
-
-
-
 basic_solver 21.
-Qed.
+Qed. *)
 
 
 End ImmCommonMoreDefs.

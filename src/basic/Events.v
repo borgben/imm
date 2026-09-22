@@ -14,24 +14,24 @@ Set Implicit Arguments.
 Module Type ValueSig.
 
   Parameter t : Type.
-
-  Parameter eq_dec :
-    forall x y : t, {x = y} + {x <> y}.
-
+  Parameter eq_dec : forall x y : t, {x = y} + {x <> y}.
   Parameter init : t.
 
 End ValueSig.
 
 Module Type Events (V : ValueSig).  
 
-Parameter thread_id : Type.
-Parameter TID_L : Lattice.fresh_child_lattice thread_id.
-Parameter thread_id_eq_dec :
-  forall x y : thread_id, {x = y} + {x <> y}.
-Parameter thread_id_countable : countable (@set_full thread_id).
+Definition thread_id := nat.
+Definition tid_init : thread_id := 0.
 
-Definition tid_init : thread_id :=
-  Lattice.bottom (Lattice.tid_lattice TID_L).
+Parameter event_index : Type.
+Parameter INDEX_L : Lattice.fresh_child_lattice event_index.
+Parameter event_index_eq_dec :
+  forall x y : event_index, {x = y} + {x <> y}.
+Parameter event_index_countable : countable (@set_full event_index).
+
+Definition uid_init : event_index :=
+  Lattice.bottom (Lattice.uid_lattice INDEX_L).
 
 Definition location := Loc.t.
 Definition value : Type := V.t. 
@@ -42,12 +42,12 @@ Definition value : Type := V.t.
 
 Inductive actid := 
   | InitEvent (l : location)
-  | ThreadEvent (thread : thread_id) (index : nat).
+  | ThreadEvent (thread : thread_id) (index : nat) (uid : event_index).
 
 Definition tid a := 
   match a with
     | InitEvent l => tid_init 
-    | ThreadEvent i _ => i
+    | ThreadEvent i _ _ => i
   end.
 
 Definition is_tid i a : Prop := tid a = i.
@@ -55,13 +55,19 @@ Definition is_tid i a : Prop := tid a = i.
 Definition index a := 
   match a with
     | InitEvent l => 0
-    | ThreadEvent _ n => n
+    | ThreadEvent _ n _ => n
+  end.
+
+Definition uid a :=
+  match a with
+    | InitEvent l => uid_init
+    | ThreadEvent _ _ u => u
   end.
 
 Definition is_init a := 
   match a with
     | InitEvent _ => true
-    | ThreadEvent _ _ => false
+    | ThreadEvent _ _ _ => false
   end.
 
 Lemma tid_set_dec thread :
@@ -90,13 +96,22 @@ unfold same_tid; unfolder; firstorder.
 Qed.
 
 (******************************************************************************)
+(** ** UID comparable restriction *)
+(******************************************************************************)
+
+Definition uid_comparable := (fun x y => 
+  Lattice.le (Lattice.uid_lattice INDEX_L) x y
+  \/ 
+  Lattice.le (Lattice.uid_lattice INDEX_L) y x)
+. 
+(******************************************************************************)
 (** ** Decidable equality *)
 (******************************************************************************)
 
 Lemma eq_dec_actid :
   forall x y : actid, {x = y} + {x <> y}.
 Proof using.
-repeat decide equality; apply thread_id_eq_dec.
+repeat decide equality; apply event_index_eq_dec.
 Qed.
 
 (******************************************************************************)
@@ -591,24 +606,34 @@ End SameFuns2.
 
 Require Import Lia.
 
+Lemma lattice_lt_trans {A} (L : Lattice.lattice A) :
+  transitive (Lattice.lt L).
+Proof using.
+  intros x y z [XY NXY] [YZ NYZ]. split.
+  { eapply Lattice.le_trans; eauto. }
+  intro EQ. subst z. apply NXY.
+  apply (@Lattice.le_antisym A L x y); auto.
+Qed.
+
 Definition ext_sb a b := 
   match a, b with 
     | _, InitEvent _ => False
-    | InitEvent _, ThreadEvent _ _ => True
-    | ThreadEvent t i, ThreadEvent t' i' => t = t' /\ i < i' 
+    | InitEvent _, ThreadEvent _ _ _ => True
+    | ThreadEvent _ _ u, ThreadEvent _ _ u' =>
+        Lattice.lt (Lattice.uid_lattice INDEX_L) u u'
    end.
 
 Lemma ext_sb_trans : transitive ext_sb.
 Proof using.
 unfold ext_sb; red; ins.
 destruct x,y,z; ins; desf; splits; eauto.
-by rewrite H2.
+eapply lattice_lt_trans; eauto.
 Qed.
 
 Lemma ext_sb_irr : irreflexive ext_sb.
 Proof using.
 unfold ext_sb; red; ins.
-destruct x; firstorder. lia.
+destruct x; firstorder.
 Qed.
 
 Lemma ext_sb_to_non_init : ext_sb ⊆ ext_sb ⨾  ⦗fun x => ~ is_init x⦘.
@@ -616,28 +641,7 @@ Proof using.
 unfold is_init, ext_sb; basic_solver.
 Qed.
 
-Lemma ext_sb_semi_total_l x y z 
-  (N: ~ is_init x) (NEQ: index y <> index z) (XY: ext_sb x y) (XZ: ext_sb x z): 
-  ext_sb y z \/ ext_sb z y.
-Proof using.
-unfold ext_sb in *.
-destruct x,y,z; ins; desf.
-cut(index1 < index2 \/ index2 < index1).
-tauto.
-lia.
-Qed.
-
-Lemma ext_sb_semi_total_r x y z 
-  (NEQ: index y <> index z) (XY: ext_sb y x) (XZ: ext_sb z x): 
-  ext_sb y z \/ ext_sb z y.
-Proof using.
-unfold ext_sb in *.
-destruct x,y,z; ins; desf; eauto.
-cut(index1 < index2 \/ index2 < index1).
-tauto.
-lia.
-Qed.
-
+(* Cross-thread fork/join edges mean [ext_sb] need not preserve [tid].
 Lemma ext_sb_tid_init x y (SB : ext_sb x y): tid x = tid y \/ is_init x.
 Proof using.
 unfold ext_sb in *; desf; ins; desf; eauto.
@@ -646,8 +650,9 @@ Qed.
 Lemma ext_sb_tid_init': ext_sb ⊆ ext_sb ∩ same_tid ∪ ⦗is_init⦘ ⨾ ext_sb.
 Proof using.
 generalize ext_sb_tid_init; firstorder.
-Qed.
+Qed. *)
 
+(* This totality property does not hold for an arbitrary lattice.
 Lemma tid_ext_sb: same_tid ⊆ ext_sb^? ∪ ext_sb^{-1} ∪ (is_init × is_init).
 Proof using.
 unfold ext_sb, same_tid, tid, is_init, cross_rel; unfolder.
@@ -662,7 +667,7 @@ Proof using.
 rewrite tid_ext_sb at 1.
 unfold cross_rel.
 basic_solver 12.
-Qed.
+Qed. *)
 
 (******************************************************************************)
 (** ** is_init properties *)
@@ -688,18 +693,20 @@ Hint Unfold set_union set_inter is_r is_w is_f R_ex : mode_unfolderDb.
 Hint Unfold is_only_pln is_only_rlx is_rlx is_rel is_acq is_acqrel is_sc is_ra is_xacq : mode_unfolderDb.
 
 Section EventsCountability. 
-  Definition actid_alt: Type := location + thread_id * nat.
+  Definition actid_alt: Type := location + thread_id * (nat * event_index).
 
   Lemma actid_alt_isomorphic:
     isomorphism (fun e => match e with
                        | InitEvent l => inl l
-                       | ThreadEvent t i => inr (t, i)
+                       | ThreadEvent t i u => inr (t, (i, u))
                        end)
                 (fun ae => match ae with
                         | inl l => InitEvent l
-                        | inr (t, i) => ThreadEvent t i
+                        | inr (t, (i, u)) => ThreadEvent t i u
                         end).
-  Proof using. split; ins; [destruct a | destruct b as [? | [? ?]]]; auto. Qed.   
+  Proof using.
+    split; ins; [destruct a | destruct b as [l | [t [i u]]]]; auto.
+  Qed.
   
   Lemma actid_countable: countable (@set_full actid).
   Proof using.
@@ -709,8 +716,10 @@ Section EventsCountability.
     { Set Printing All.
       unfold location, Loc.Loc.t. apply pos_countable. }
     apply countable_prod.
-    { apply thread_id_countable. }
-    apply nat_countable.
+    { apply nat_countable. }
+    apply countable_prod.
+    { apply nat_countable. }
+    apply event_index_countable.
   Qed.
 
 End EventsCountability.   

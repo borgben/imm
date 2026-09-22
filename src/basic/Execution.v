@@ -1,5 +1,6 @@
 Require Import Lia.
 Require Import Classical Peano_dec.
+Require Import Lattice.
 From hahn Require Import Hahn.
 From hahnExt Require Import HahnExt.
 Require Import Events.
@@ -75,10 +76,35 @@ Notation "'Acq/Rel'" := (Ev.is_ra lab).
 Notation "'Sc'" := (Ev.is_sc lab).
 
 Definition sb := ⦗E⦘ ⨾ Ev.ext_sb ⨾  ⦗E⦘.
-
 Record Wf :=
   { wf_index : forall a b, 
       E a /\ E b /\ a <> b /\ Ev.tid a = Ev.tid b /\ ~ Ev.is_init a -> Ev.index a <> Ev.index b ;
+
+    wf_uid_unique : forall a b,
+      E a -> E b ->
+      ~ Ev.is_init a -> ~ Ev.is_init b ->
+      Ev.uid a = Ev.uid b -> a = b;
+    
+    wf_uid_order : forall a b,
+      E a -> E b -> 
+      Ev.tid a = Ev.tid b ->
+      ~ Ev.is_init a -> ~ Ev.is_init b ->
+      (Ev.index a < Ev.index b <->
+       Lattice.lt (Lattice.uid_lattice Ev.INDEX_L) (Ev.uid a) (Ev.uid b));
+    wf_sb_well_founded : well_founded sb;
+    
+    (* A fork is an event with two immediate, UID-incomparable successors. *)
+    wf_fork_write : forall a b c,
+      immediate sb a b -> immediate sb a c ->
+      Lattice.incomparable (Lattice.uid_lattice Ev.INDEX_L)
+        (Ev.uid b) (Ev.uid c) -> W a;
+    
+    (* A join is an event with two immediate, UID-incomparable predecessors. *)
+    wf_join_read : forall a b c,
+      immediate sb b a -> immediate sb c a ->
+      Lattice.incomparable (Lattice.uid_lattice Ev.INDEX_L)
+        (Ev.uid b) (Ev.uid c) -> R a;
+    
     data_in_sb : data ⊆ sb ;
     wf_dataD : data ≡ ⦗R⦘ ⨾ data ⨾ ⦗W⦘ ;
     addr_in_sb : addr ⊆ sb ;
@@ -89,6 +115,11 @@ Record Wf :=
     wf_rmwD : rmw ≡ ⦗R⦘ ⨾ rmw ⨾ ⦗W⦘ ;
     wf_rmwl : rmw ⊆ same_loc ;
     wf_rmwi : rmw ⊆ immediate sb ;
+
+    wf_rmwt_wf : rmw ⊆ Ev.same_tid ;
+    wf_rmwf_wf : functional rmw ;
+    wf_rmw_invf_wf : functional rmw⁻¹ ;
+    
     wf_rfE : rf ≡ ⦗E⦘ ⨾ rf ⨾ ⦗E⦘ ;
     wf_rfD : rf ≡ ⦗W⦘ ⨾ rf ⨾ ⦗R⦘ ;
     wf_rfl : rf ⊆ same_loc ;
@@ -343,14 +374,8 @@ Proof using.
 by apply trans_irr_acyclic; [apply co_irr| apply co_trans]. 
 Qed.
 
-Lemma wf_sb : well_founded sb.
-Proof using. 
-  unfold sb.
-  rewrite <- restr_relE. eapply wf_mon; [by apply inclusion_restr| ].
-  apply Wf_nat.well_founded_lt_compat
-    with (f := fun (e: Ev.actid) => if e then 0 else Ev.index e + 1).
-  intros x y SB. destruct x, y; simpl in *; lia. 
-Qed.
+Lemma wf_sb WF : well_founded sb.
+Proof using. exact (wf_sb_well_founded WF). Qed.
 
 (******************************************************************************)
 (** ** init *)
@@ -429,6 +454,8 @@ Proof using. rewrite (init_pln WF). mode_solver. Qed.
 (** ** More properties *)
 (******************************************************************************)
 
+(* These properties relied on every [sb] edge preserving the thread id.
+   They are false once [sb] also represents fork/join edges.
 Lemma sb_semi_total_l x y z 
   WF (N: ~ Ev.is_init x) (NEQ: y <> z) (XY: sb x y) (XZ: sb x z): 
   sb y z \/ sb z y.
@@ -487,11 +514,14 @@ Proof using.
   basic_solver.
 Qed.
 
+*)
+
 Lemma same_tid_trans : transitive Ev.same_tid.
 Proof using. 
   red. unfold Ev.same_tid. ins.
   etransitivity; eauto.
 Qed.
+(* Replaced by WF-qualified same-thread totality below.
 
 Lemma tid_sb: ⦗E⦘ ⨾ Ev.same_tid ⨾  ⦗E⦘ ⊆ sb^? ∪ sb^{-1} ∪ (Ev.is_init × Ev.is_init).
 Proof using.
@@ -507,12 +537,15 @@ sin_rewrite Ev.tid_n_init_ext_sb.
 basic_solver 21.
 Qed.
 
+*)
 Lemma init_ninit_sb (WF : Wf) x y (INIT : Ev.is_init x) (ININE : E x) (INE : E y)
       (NINIT : ~ Ev.is_init y): sb x y.
 Proof using. 
 unfold sb, Ev.ext_sb; basic_solver.
 Qed.
 
+(* Global semi-totality and immediate/adjacent equivalence do not hold for a
+   fork/join partial order.
 Lemma same_thread x y (X : E x) (Y : E y)
       (NINIT : ~ Ev.is_init x) (ST : Ev.tid x = Ev.tid y):
   sb^? x y \/ sb y x.
@@ -534,31 +567,98 @@ apply immediate_adjacent.
 - apply sb_irr.
 Qed.
 
-Lemma sb_total t:
+*)
+Lemma sb_total WF t:
   is_total ((E \₁ Ev.is_init) ∩₁ Tid_ t) sb. 
 Proof using.
-  red. ins. unfolder in IWa. unfolder in IWb. desc. subst. 
-  destruct a, b; try by vauto. simpl in *. subst.
-  assert (index < index0 \/ index = index0 \/ index0 < index) as HH by lia.
-  des; [left | congruence | right]. 
-  all: red; apply seq_eqv_lr; splits; vauto. 
+  red. intros a A b B NEQ.
+  unfolder in A; unfolder in B; desf.
+  assert (IAIB : Ev.index a <> Ev.index b).
+  { apply (wf_index WF). splits; eauto. }
+  assert (Ev.index a < Ev.index b \/ Ev.index a = Ev.index b \/
+          Ev.index b < Ev.index a) as [LT|[EQ|LT]] by lia.
+  2: { exfalso. apply IAIB. exact EQ. }
+  - left. unfold sb. apply seq_eqv_lr. splits; auto.
+    destruct a, b; simpl in *; try contradiction; try lia.
+    eapply (proj1 (wf_uid_order WF
+                    (Ev.ThreadEvent thread index uid)
+                    (Ev.ThreadEvent thread0 index0 uid0) A B
+                    (eq_sym B0) A1 B1)); exact LT.
+  - right. unfold sb. apply seq_eqv_lr. splits; auto.
+    destruct a, b; simpl in *; try contradiction; try lia.
+    eapply (proj1 (wf_uid_order WF
+                    (Ev.ThreadEvent thread0 index0 uid0)
+                    (Ev.ThreadEvent thread index uid) B A
+                    B0 B1 A1)); exact LT.
 Qed. 
 
+Lemma same_thread WF x y (X : E x) (Y : E y)
+      (NINIT : ~ Ev.is_init x) (ST : Ev.tid x = Ev.tid y):
+  sb^? x y \/ sb y x.
+Proof using.
+  destruct (classic (x = y)); [left; now left|].
+  destruct (classic (Ev.is_init y)) as [INITY|NINITY].
+  { right. eapply init_ninit_sb; eauto. }
+  pose proof (sb_total WF (t := Ev.tid x)) as TOTAL. red in TOTAL.
+  specialize (TOTAL x).
+  assert (((E \₁ Ev.is_init) ∩₁ Tid_ (Ev.tid x)) x) as XX.
+  { unfolder; splits; auto. }
+  specialize (TOTAL XX y).
+  assert (((E \₁ Ev.is_init) ∩₁ Tid_ (Ev.tid x)) y) as YY.
+  { unfolder; splits; auto. }
+  specialize (TOTAL YY H). destruct TOTAL as [SB|SB].
+  { now left; right. }
+  now right.
+Qed.
+
+(* Same-thread events have comparable UIDs by [wf_index] and [wf_uid_order]. *)
+Lemma wf_uid_same_tid_comparable WF a b
+  (EA : E a) (EB : E b) (ST : Ev.tid a = Ev.tid b) :
+  Ev.uid_comparable (Ev.uid a) (Ev.uid b).
+Proof using.
+  destruct (classic (a = b)) as [EQ|NE].
+  { subst b. left. apply Lattice.le_refl. }
+  destruct a as [la|ta ia ua], b as [lb|tb ib ub]; simpl in *.
+  - left. apply Lattice.le_refl.
+  - left. apply Lattice.bottom_le.
+  - right. apply Lattice.bottom_le.
+  - assert (NI : ia <> ib).
+    { apply (@wf_index WF (Ev.ThreadEvent ta ia ua) (Ev.ThreadEvent tb ib ub)).
+      splits; auto. }
+    assert (LT : ia < ib \/ ib < ia) by lia.
+    destruct LT as [LT|LT].
+    + left. apply (proj1 (proj1 (wf_uid_order WF _ _ EA EB ST
+                                ltac:(done) ltac:(done)) LT)).
+    + right. apply (proj1 (proj1 (wf_uid_order WF _ _ EB EA (eq_sym ST)
+                                 ltac:(done) ltac:(done)) LT)).
+Qed.
+
+Lemma wf_uid_incomparable_diff_tid WF a b (EA : E a) (EB : E b)
+  (INC : Lattice.incomparable (Lattice.uid_lattice Ev.INDEX_L)
+           (Ev.uid a) (Ev.uid b)) : Ev.tid a <> Ev.tid b.
+Proof using.
+  intro ST. destruct (wf_uid_same_tid_comparable WF a b EA EB ST);
+    destruct INC; contradiction.
+Qed.
+
+(* These immediate-edge consequences require predecessor/successor
+   semi-totality, which a fork/join partial order does not provide.
 Lemma sb_transp_rmw  WF : sb ⨾ rmw ^{-1} ⊆ sb^?.
 Proof using.
 rewrite (rmw_from_non_init WF).
 rewrite (wf_rmwi WF); clear -WF.
 rewrite (sb_immediate_adjacent WF).
 unfold adjacent; basic_solver.
-Qed.
+Qed. *)
 
+(* Likewise unavailable for a general fork/join partial order.
 Lemma transp_rmw_sb  WF :  rmw ^{-1} ⨾ sb ⊆ sb^?.
 Proof using.
 rewrite (rmw_from_non_init WF).
 rewrite (wf_rmwi WF); clear -WF.
 rewrite (sb_immediate_adjacent WF).
 unfold adjacent; basic_solver.
-Qed.
+Qed. *)
 
 Lemma rf_rf WF : rf ⨾ rf ≡ ∅₂.
 Proof using. rewrite (wf_rfD WF); type_solver. Qed.
@@ -604,31 +704,13 @@ Qed.
 *)
 
 Lemma wf_rmwt WF: rmw ⊆ Ev.same_tid.
-Proof using.
-rewrite (rmw_from_non_init WF).
-rewrite (rmw_in_sb WF), sb_tid_init'.
-basic_solver.
-Qed.
+Proof using. exact (wf_rmwt_wf WF). Qed.
 
 Lemma wf_rmwf WF: functional rmw.
-Proof using.
-rewrite (rmw_from_non_init WF).
-rewrite (wf_rmwi WF).
-rewrite (sb_immediate_adjacent WF).
-unfolder; ins; desc.
-eapply adjacent_unique1; eauto.
-apply sb_acyclic.
-Qed.
+Proof using. exact (wf_rmwf_wf WF). Qed.
 
 Lemma wf_rmw_invf WF: functional (rmw)⁻¹.
-Proof using.
-rewrite (rmw_from_non_init WF).
-rewrite (wf_rmwi WF).
-rewrite (sb_immediate_adjacent WF).
-unfolder; ins; desc.
-eapply adjacent_unique2; eauto.
-apply sb_acyclic.
-Qed.
+Proof using. exact (wf_rmw_invf_wf WF). Qed.
 
 
 (******************************************************************************)
@@ -701,12 +783,15 @@ Proof using. unfold coi; basic_solver. Qed.
 Lemma coe_in_co : coe ⊆ co.
 Proof using. unfold coe; basic_solver. Qed.
 
+(* An internal edge may now be a cross-thread fork/join edge.
+
 Lemma ninit_rfi_same_tid : ⦗ set_compl Ev.is_init ⦘ ⨾ rfi ⊆ Ev.same_tid.
 Proof using.
   arewrite (rfi ⊆ sb).
   apply ninit_sb_same_tid.
 Qed.
 
+*)
 Lemma coi_trans WF : transitive coi.
 Proof using.
   apply transitiveI.
@@ -752,6 +837,7 @@ generalize sb_trans.
 unfolder in *; basic_solver 21.
 Qed.
 
+(* These external/internal composition rules require semi-total [sb].
 Lemma re_ri WF  r r' (IRR: irreflexive r)  (IRR2: irreflexive (r ⨾ sb))
   (N: r ⊆ r ⨾  ⦗ fun x => ~ Ev.is_init x ⦘): (r \ sb) ⨾ (r' ∩ sb) ⊆ r ⨾  r' \ sb.
 Proof using.
@@ -761,8 +847,9 @@ intro.
 eapply sb_semi_total_r with (x:=y) (y:=x) in H1; eauto.
 by desf; revert IRR2; basic_solver.
 eby intro; subst; eapply IRR.
-Qed.
+Qed. *)
 
+(* Likewise requires semi-total [sb].
 Lemma ri_re WF  r r' (IRR: irreflexive r')  (IRR2: irreflexive (r' ⨾ sb)): 
  ⦗ fun x => ~ Ev.is_init x ⦘ ⨾ (r ∩ sb) ⨾ (r' \ sb) ⊆ r ⨾  r' \ sb.
 Proof using.
@@ -771,7 +858,7 @@ intro.
 eapply sb_semi_total_l with (x:=x) (y:=z) (z:=y) in H4; eauto.
 by desf; revert IRR2; basic_solver.
 eby intro; subst; eapply IRR.
-Qed.
+Qed. *)
 
 Lemma rfi_in_sbloc WF : rf ∩ sb ⊆ restr_eq_rel loc sb.
 Proof using. rewrite wf_rfl; basic_solver 12. Qed.
@@ -884,7 +971,7 @@ Proof using.
 unfold detour, rfe, rfi.
 unfolder; ins; desf.
 assert (y=z0); subst; auto.
-eapply WF; basic_solver.
+eapply (wf_rff WF); basic_solver.
 Qed.
 
 Lemma detour_in_sb : detour ⊆ sb.
@@ -1004,6 +1091,8 @@ Proof using.
   basic_solver 21.
 Qed.
 
+(* [rfi] may cross threads in the fork/join model.
+
 Lemma ninit_rfi_rmw_same_tid WF : ⦗ set_compl Ev.is_init ⦘ ⨾ rfi ⨾ rmw ⊆ Ev.same_tid.
 Proof using.
   rewrite (wf_rmwt WF).
@@ -1023,6 +1112,7 @@ Proof using.
   apply transitiveI. apply same_tid_trans.
 Qed.
 
+*)
 Lemma sw_in_ar_helper WF:
   ((sb ∩ same_loc)^? ⨾ rf ⨾ rmw)＊ ⊆
   (sb ∩ same_loc ⨾ ⦗W⦘)^? ∪ (sb ∩ same_loc)^? ⨾ (rfe ⨾ rmw ⨾ (sb ∩ same_loc)^? ⨾ ⦗W⦘)⁺.

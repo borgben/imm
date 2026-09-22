@@ -35,14 +35,21 @@ Section FinExecutionDefs.
   Hypothesis FINDOM: fin_exec_full G.
 
   Lemma exists_nE thread :
-    exists n, ~ Ex.acts_set G (Ev.ThreadEvent thread n).
+    exists n, forall uid, ~ Ex.acts_set G (Ev.ThreadEvent thread n uid).
   Proof using FINDOM.
-    set (AA:=FINDOM).
-    apply set_finite_exists_bigger with (f:=Ev.ThreadEvent thread) in AA.
-    3: { ins. desf. }
-    2: { apply Ev.eq_dec_actid. }
-    desf.
-    exists (1 + n). apply AA. lia.
+    destruct FINDOM as [events EVENTS].
+    assert (BOUND : exists n, forall e, In e events -> Ev.index e < n).
+    { clear EVENTS. induction events as [|e events IH].
+      { exists 0. intros e IN. inversion IN. }
+      destruct IH as [bound IH].
+      exists (S (Nat.max (Ev.index e) bound)).
+      intros e' [EQ | IN].
+      { subst e'. lia. }
+      specialize (IH e' IN). lia. }
+    destruct BOUND as [n BOUND]. exists n.
+    intros uid EVENT. apply EVENTS in EVENT.
+    specialize (BOUND (Ev.ThreadEvent thread n uid) EVENT). simpl in BOUND.
+    lia.
   Qed.
 
   Definition acts_list: list Ev.actid :=

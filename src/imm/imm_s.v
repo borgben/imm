@@ -829,28 +829,22 @@ Proof using WF IMMCON WF_SC.
 Qed.
 
 Lemma rfe_n_same_tid : rfe ∩ same_tid ⊆ ∅₂.
-Proof using WF COH.
-  arewrite (rfe ∩ same_tid ⊆ rfe ∩ (⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘)).
-  { rewrite (wf_rfeE WF) at 1. basic_solver. }
-  arewrite (⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘ ⊆ same_tid ∩ (⦗E⦘ ⨾ same_tid ⨾ ⦗E⦘)) by basic_solver.
-  rewrite tid_sb.
-  rewrite !inter_union_r.
-  unionL.
-  3: { rewrite (wf_rfeD WF). rewrite init_w; eauto. type_solver. }
-  2: { unfolder. ins. desf.
-       eapply COH. eexists. split.
-       { eby apply SHbModel.sb_in_hb. }
-       right. apply rf_in_eco.
-       match goal with
-       | H : rfe _ _ |- _ => apply H
-       end. }
-  unfolder. ins. desf.
-  { eapply eco_irr; eauto. apply rf_in_eco.
-    match goal with
-    | H : rfe _ _ |- _ => apply H
-    end. }
-  eapply (thread_rfe_sb WF (SHbModel.coherence_sc_per_loc COH)).
-  basic_solver 10.
+Proof using WF COH.  
+  intros x y [[RF NSB] ST].
+  assert (EX : E x /\ E y).
+  { pose proof (proj1 (wf_rfE WF) _ _ RF) as EE.
+    apply seq_eqv_lr in EE. tauto. }
+  destruct EX as [EX EY].
+  assert (NY : ~ is_init y).
+  { pose proof (proj1 (no_rf_to_init WF) _ _ RF) as NI.
+    apply seq_eqv_r in NI. exact (proj2 NI). }
+  destruct (@same_thread G WF y x EY EX NY (eq_sym ST)) as [[EQ|YX]|XY].
+  - subst y. eapply rf_irr. exact WF. exact RF.  
+  - unfold SHbModel.coherence in COH. unfold irreflexive in COH. 
+    unfold "hb" in COH. eapply COH. unfold eco. exists x.    split.    
+    + apply SHbModel.sb_in_hb. exact YX. 
+    + right. apply rf_in_eco. exact RF. 
+  - exact (NSB XY).
 Qed.
 
 Lemma ar_W_in_ar_int : ar sc ⨾ ⦗W⦘ ⊆ ar_int.

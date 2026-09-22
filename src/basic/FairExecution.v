@@ -6,6 +6,7 @@ Require Import Events.
 Require Import Execution.
 Import ListNotations.
 Require Import FinExecution.
+Require Import Lattice.
 
 Module FairExecution
     (Val : ValueSig)
@@ -99,12 +100,33 @@ Section FairExecutionDefs.
   Lemma fsupp_sb:
     fsupp (⦗set_compl Ev.is_init⦘ ⨾ Ex.sb G).
   Proof using WF.
-    unfold Ex.sb, Ev.ext_sb; unfolder; ins.
-    destruct y; [exists nil; ins; desf|].
-    exists (map (fun i => Ev.ThreadEvent thread i) (List.seq 0 index)).
-    intros e ((NIe & E0) & (SB & E)).
-    destruct e; [done| ]. destruct SB as [-> LT].
-    apply in_map_iff. eexists. split; eauto. by apply in_seq0_iff.
+    assert (FINITE : forall us : list Ev.event_index,
+      exists es : list Ev.actid, forall e,
+        Ex.acts_set G e -> ~ Ev.is_init e ->
+        In (Ev.uid e) us -> In e es).
+    { intro us. induction us as [|u us [es IH]].
+      { exists nil. intros e E NI IN. inversion IN. }
+      destruct (classic (exists e, Ex.acts_set G e /\
+                                  ~ Ev.is_init e /\ Ev.uid e = u))
+        as [[a [EA [NIA UID]]] | NONE].
+      - exists (a :: es). intros e E NI [EQ | IN].
+        + left. apply (wf_uid_unique WF); auto. congruence.
+        + right. by apply IH.
+      - exists es. intros e E NI [EQ | IN].
+        + exfalso. apply NONE. exists e. splits; auto.
+        + by apply IH. }
+    red. intro y.
+    destruct (Lattice.finite_strict_lower Ev.INDEX_L (Ev.uid y))
+      as [us LOWER].
+    destruct (FINITE us) as [es EVENTS]. exists es.
+    intros e REL. apply seq_eqv_l in REL.
+    destruct REL as [NI SB].
+    unfold Ex.sb in SB. apply seq_eqv_lr in SB.
+    destruct SB as [E [SB EY]].
+    apply EVENTS; auto. apply LOWER.
+    unfold Ev.ext_sb in SB. unfold set_compl, Ev.is_init in NI.
+    destruct e, y; simpl in *; try tauto.
+    exfalso. apply NI. reflexivity.
   Qed.
 
   Lemma fsupp_sb_loc:

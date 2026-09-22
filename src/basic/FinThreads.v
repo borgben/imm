@@ -1,5 +1,4 @@
-Require Import Program.Basics.
-Require Import Lattice. 
+(* Require Import Program.Basics.
 From hahn Require Import Hahn.
 From imm Require Import Execution Events.
 Require Import Lia.
@@ -15,8 +14,7 @@ Import Ex.
 Definition fin_threads (G : execution) := set_finite (Ex.threads_set G).
 
 Definition threads_bound (G: execution) (b: Ev.thread_id) :=
-  forall e (Ge: Ex.acts_set G e),
-    Lattice.le (Lattice.tid_lattice Ev.TID_L) (Ev.tid e) b.
+  forall e (Ge: Ex.acts_set G e), Ev.tid e < b.
 
 Lemma fin_threads_bound G
       (ACTS : forall e : Ev.actid,
@@ -26,33 +24,21 @@ Lemma fin_threads_bound G
 Proof using.
   do 2 red in FIN. desf.
   unfold threads_bound.
-  set (L := Lattice.tid_lattice Ev.TID_L).
-  enough (exists b, forall t, List.In t findom -> Lattice.le L t b) as [b HH].
+  enough (exists b, forall t, List.In t findom -> t < b) as [b HH].
   { exists b. ins. apply HH. apply FIN. now apply ACTS. }
-  clear FIN ACTS G.
-  induction findom as [|a rest [b IH]].
-  { exists (Lattice.bottom L). intros t IN. inversion IN. }
-  exists (Lattice.join L a b).
-  assert (BOUNDS : Lattice.le L a (Lattice.join L a b) /\
-                   Lattice.le L b (Lattice.join L a b)).
-  { apply (proj1 (Lattice.join_spec L a b (Lattice.join L a b))).
-    apply Lattice.le_refl. }
-  destruct BOUNDS as [LEFT RIGHT].
-  intros t [EQ | IN].
-  { subst t. exact LEFT. }
-  eapply Lattice.le_trans; [apply IH; exact IN | exact RIGHT].
+  clear FIN ACTS G. induction findom as [|a rest [b IH]].
+  { exists 0. intros t IN. inversion IN. }
+  exists (S (Nat.max a b)). intros t [EQ | IN].
+  { subst t. lia. }
+  specialize (IH t IN). lia.
 Qed.
 
-(* Lemma BinPos_lt_fin b:
-  set_finite (fun t => Lattice.le (Lattice.tid_lattice Ev.TID_L) t b). 
+Lemma BinPos_lt_fin b:
+  set_finite (fun t => t < b).
 Proof using.
-  unfold set_finite.  
-  exists (map BinPos.Pos.of_nat (List.seq 0 (BinPos.Pos.to_nat b))).
-  ins. apply Pnat.Pos2Nat.inj_lt in IN. 
-  apply in_map_iff. eexists. splits.
-  { by apply Pnat.Pos2Nat.id. }
+  exists (List.seq 0 b). intros t LT.
   apply in_seq. lia.
-Qed.  *)
+Qed.
 
 Lemma dupE A (l : list A) (DUP: ~ NoDup l) :
   exists l1 a l2 l3, l = l1 ++ a :: l2 ++ a :: l3.
@@ -114,4 +100,4 @@ Proof using.
   basic_solver.  
 Qed.  
 
-End FinThreads.
+End FinThreads. *)

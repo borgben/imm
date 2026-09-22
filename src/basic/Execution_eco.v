@@ -8,6 +8,7 @@ From hahn Require Import Hahn.
 Require Import Events.
 Require Import Execution.
 Require Import FairExecution.
+Require Import Lattice.
 
 Set Implicit Arguments.
 
@@ -278,26 +279,147 @@ eapply tot_ex.
 - intro; eauto.
 Qed.
 
+(* Finite causal pasts let us expose the first and last immediate edges. *)
+Lemma sb_non_init_imm WF :
+  ⦗set_compl Ev.is_init⦘ ⨾ sb ⊆ (immediate sb)⁺.
+Proof using.
+  set (s := ⦗set_compl Ev.is_init⦘ ⨾ sb).
+  assert (IRR : irreflexive s).
+  { unfold s. generalize (@sb_irr G). basic_solver. }
+  assert (TRANS : transitive s).
+  { unfold s. generalize (@sb_trans G). basic_solver. }
+  unfold s in *.
+  rewrite (fsupp_imm_t (fsupp_sb G WF) IRR TRANS).
+  apply clos_trans_mori. intros x y [[NI XY]%seq_eqv_l IMM].
+  split; auto. intros z XZ ZY. apply (IMM z).
+  - apply seq_eqv_l. auto.
+  - apply seq_eqv_l. split; auto.
+    pose proof (proj1 (@no_sb_to_init G) x z XZ) as NZ.
+    apply seq_eqv_r in NZ. exact (proj2 NZ).
+Qed.
+
+Lemma sb_incomparable_uids WF x y
+  (EX : E x) (EY : E y) (NX : ~ Ev.is_init x) (NY : ~ Ev.is_init y)
+  (NE : x <> y) (NXY : ~ sb x y) (NYX : ~ sb y x) :
+  Lattice.incomparable (Lattice.uid_lattice Ev.INDEX_L) (Ev.uid x) (Ev.uid y).
+Proof using.
+  assert (NU : Ev.uid x <> Ev.uid y).
+  { intro EQ. apply NE. eapply wf_uid_unique; eauto. }
+  split; intro LE.
+  - apply NXY. unfold Ex.sb. apply seq_eqv_lr. splits; auto.
+    unfold Ev.ext_sb. destruct x, y; simpl in *; try done.
+  - apply NYX. unfold Ex.sb. apply seq_eqv_lr. splits; auto.
+    unfold Ev.ext_sb. destruct x, y; simpl in *; try done.
+    split; auto.
+Qed.
+
+Lemma read_sb_imm_unique WF x y z
+  (RX : R x) (XY : immediate sb x y) (XZ : immediate sb x z) : y = z.
+Proof using.
+  destruct (classic (y = z)); auto. exfalso.
+  assert (INC : Lattice.incomparable (Lattice.uid_lattice Ev.INDEX_L)
+                  (Ev.uid y) (Ev.uid z)).
+  { apply sb_incomparable_uids; auto.
+    - destruct XY as [XY _]. pose proof (proj1 (@wf_sbE G) _ _ XY) as EE.
+      apply seq_eqv_lr in EE. exact (proj2 (proj2 EE)).
+    - destruct XZ as [XZ _]. pose proof (proj1 (@wf_sbE G) _ _ XZ) as EE.
+      apply seq_eqv_lr in EE. exact (proj2 (proj2 EE)).
+    - destruct XY as [XY _]. pose proof (proj1 (@no_sb_to_init G) _ _ XY) as NI.
+      apply seq_eqv_r in NI. exact (proj2 NI).
+    - destruct XZ as [XZ _]. pose proof (proj1 (@no_sb_to_init G) _ _ XZ) as NI.
+      apply seq_eqv_r in NI. exact (proj2 NI).
+    - intro YZ. exact (proj2 XZ y (proj1 XY) YZ).
+    - intro ZY. exact (proj2 XY z (proj1 XZ) ZY). }
+  pose proof (wf_fork_write WF XY XZ INC) as WX.
+  clear -RX WX. type_solver.
+Qed.
+
+Lemma write_sb_imm_unique WF x y z
+  (WX : W x) (NY : ~ Ev.is_init y) (NZ : ~ Ev.is_init z)
+  (YX : immediate sb y x) (ZX : immediate sb z x) : y = z.
+Proof using.
+  destruct (classic (y = z)); auto. exfalso.
+  assert (INC : Lattice.incomparable (Lattice.uid_lattice Ev.INDEX_L)
+                  (Ev.uid y) (Ev.uid z)).
+  { apply sb_incomparable_uids; auto.
+    - destruct YX as [YX _]. pose proof (proj1 (@wf_sbE G) _ _ YX) as EE.
+      apply seq_eqv_lr in EE. exact (proj1 EE).
+    - destruct ZX as [ZX _]. pose proof (proj1 (@wf_sbE G) _ _ ZX) as EE.
+      apply seq_eqv_lr in EE. exact (proj1 EE).
+    - intro YZ. exact (proj2 YX z YZ (proj1 ZX)).
+    - intro ZY. exact (proj2 ZX y ZY (proj1 YX)). }
+  pose proof (wf_join_read WF YX ZX INC) as RX.
+  clear -RX WX. type_solver.
+Qed.
+
+(* A read cannot fork, so every successor of the RMW read is at or after
+   its paired write. *)
+Lemma rmw_sb_successor WF x y z (RMW : rmw x y) (XZ : sb x z) :
+  sb^? y z.
+Proof using.
+  assert (NX : ~ Ev.is_init x).
+  { pose proof (proj1 (rmw_from_non_init WF) _ _ RMW) as NI.
+    apply seq_eqv_l in NI. exact (proj1 NI). }
+  assert (RX : R x).
+  { pose proof (proj1 (wf_rmwD WF) _ _ RMW) as DD.
+    apply seq_eqv_lr in DD. tauto. }
+  assert (PATH : (immediate sb)⁺ x z).
+  { apply (sb_non_init_imm WF). apply seq_eqv_l. auto. }
+  apply ct_begin in PATH. destruct PATH as [u [XU UZ]].
+  assert (y = u).
+  { eapply (read_sb_imm_unique WF RX); [exact (wf_rmwi WF _ _ RMW)|exact XU]. }
+  subst u. revert UZ.
+  assert (IN : (immediate sb)＊ ⊆ sb^?).
+  { arewrite (immediate sb ⊆ sb). by rewrite (rt_of_trans (@sb_trans G)). }
+  apply IN.
+Qed.
+
+(* A write cannot join, so every non-initial predecessor of the RMW write
+   is at or before its paired read. *)
+Lemma rmw_sb_predecessor WF x y z (RMW : rmw x y)
+  (NZ : ~ Ev.is_init z) (ZY : sb z y) : sb^? z x.
+Proof using.
+  assert (NX : ~ Ev.is_init x).
+  { pose proof (proj1 (rmw_from_non_init WF) _ _ RMW) as NI.
+    apply seq_eqv_l in NI. exact (proj1 NI). }
+  assert (WY : W y).
+  { pose proof (proj1 (wf_rmwD WF) _ _ RMW) as DD.
+    apply seq_eqv_lr in DD. tauto. }
+  assert (PATH : (immediate sb)⁺ z y).
+  { apply (sb_non_init_imm WF). apply seq_eqv_l. auto. }
+  apply ct_end in PATH. destruct PATH as [u [ZU UY]].
+  assert (ZU' : sb^? z u).
+  { revert ZU.
+    assert (IN : (immediate sb)＊ ⊆ sb^?).
+    { arewrite (immediate sb ⊆ sb). by rewrite (rt_of_trans (@sb_trans G)). }
+    apply IN. }
+  assert (NU : ~ Ev.is_init u).
+  { destruct ZU' as [EQ|ZU']; subst; auto.
+    pose proof (proj1 (@no_sb_to_init G) _ _ ZU') as NI.
+    apply seq_eqv_r in NI. exact (proj2 NI). }
+  assert (x = u).
+  { eapply (write_sb_imm_unique WF WY NX NU);
+      [exact (wf_rmwi WF _ _ RMW)|exact UY]. }
+  subst u. exact ZU'.
+Qed.
+
 Lemma atomicity_alt WF SC_PER_LOC ATOM : rmw ∩ (fr ⨾ co) ⊆ ∅₂.
 Proof using.
-rewrite rmw_from_non_init, no_fr_to_init; eauto.
-unfolder; red in ATOM; red in SC_PER_LOC; ins; desf.
-destruct (classic (sb x z));
-destruct (classic (sb z y)); eauto 8.
-- by eapply wf_rmwi; eauto.
-- eapply sb_semi_total_l with (y:=y) in H4; eauto.
-  desf.
-  eapply SC_PER_LOC.
-  by eexists; splits; [eauto| apply co_in_eco].
-  eby intro; subst; eapply (co_irr WF).
-  eby apply rmw_in_sb.
-- eapply sb_semi_total_r with (x:=y) (y:=x) in H5; eauto.
-  desf.
-  eapply SC_PER_LOC.
-  by eexists; splits; [eauto| apply fr_in_eco].
-  eby intro; subst; eapply fr_irr.
-  eby apply rmw_in_sb.
-- by eapply ATOM; unfolder; splits; eauto.
+  intros x y [RMW [z [FRXZ CO]]].
+  destruct (classic (sb x z)) as [XZ|NXZ].
+  - destruct (@rmw_sb_successor WF x y z RMW XZ) as [EQ|YZ].
+    + subst z. exact (co_irr WF _ CO).
+    + apply (SC_PER_LOC y). exists z. split; auto.
+      by apply co_in_eco.
+  - destruct (classic (sb z y)) as [ZY|NZY].
+    + assert (NZ : ~ Ev.is_init z).
+      { pose proof (no_fr_to_init WF SC_PER_LOC FRXZ) as NI.
+        apply seq_eqv_r in NI. exact (proj2 NI). }
+      destruct (@rmw_sb_predecessor WF x y z RMW NZ ZY) as [EQ|ZX].
+      * subst z. exact (fr_irr WF FRXZ).
+      * apply (SC_PER_LOC z). exists x. split; auto.
+        by apply fr_in_eco.
+    + apply (ATOM x y). split; auto. exists z. split; split; auto.
 Qed.
 
 Lemma BasicRMW WF SC_PER_LOC: irreflexive (co^? ⨾ rf ⨾ rmw).
@@ -498,7 +620,7 @@ Qed.
 (** ** properties of external/internal relations *)
 (******************************************************************************)
 
-Lemma coe_coi WF SC_PER_LOC: coe ⨾ coi ⊆ coe.
+(* Lemma coe_coi WF SC_PER_LOC: coe ⨾ coi ⊆ coe.
 Proof using.
 cut ((co \ sb) ⨾ co ∩ sb ⊆ co ⨾ co \ sb).
 by rewrite (co_co WF).
@@ -506,9 +628,9 @@ apply re_ri; try done; try by apply no_co_to_init.
 by apply co_irr.
 rotate 1.
 by rewrite co_in_eco.
-Qed.
+Qed. *)
 
-Lemma fre_coi WF SC_PER_LOC : fre ⨾ coi ⊆ fre.
+(* Lemma fre_coi WF SC_PER_LOC : fre ⨾ coi ⊆ fre.
 Proof using.
 cut ((fr \ sb) ⨾ co ∩ sb ⊆ fr ⨾ co \ sb).
 by rewrite (fr_co WF).
@@ -516,9 +638,9 @@ apply re_ri; try done; try by apply no_fr_to_init.
 by apply fr_irr.
 rotate 1.
 by rewrite fr_in_eco.
-Qed.
+Qed. *)
 
-Lemma coi_coe WF SC_PER_LOC: 
+(* Lemma coi_coe WF SC_PER_LOC: 
  ⦗fun x => ~ Ev.is_init x⦘ ⨾ coi ⨾ coe ⊆ coe.
 Proof using.
 cut (⦗fun x => ~ Ev.is_init x⦘ ⨾ (co ∩ sb) ⨾ (co \ sb) ⊆ co ⨾ co \ sb).
@@ -527,16 +649,16 @@ apply ri_re; try done; try by apply no_co_to_init.
 by apply co_irr.
 rotate 1.
 by rewrite co_in_eco.
-Qed.
+Qed. *)
 
-Lemma rfe_fri WF SC_PER_LOC : rfe ⨾ fri ⊆ coe.
+(* Lemma rfe_fri WF SC_PER_LOC : rfe ⨾ fri ⊆ coe.
 Proof using.
   cut ((rf \ sb) ⨾ fr ∩ sb ⊆ rf ⨾ fr \ sb).
   { by rewrite (rf_fr WF). }
   apply re_ri; try done; try by apply no_rf_to_init.
   { by apply rf_irr. }
   rotate 1. by rewrite rf_in_eco.
-Qed.
+Qed. *)
 
 Lemma eco_refl : 
   eco^? ⊆ ((co ∪ fre)^? ⨾ rf^?) ∪ fri ⨾ rfi^? ∪ fri ⨾ rfe.
@@ -568,7 +690,7 @@ unionL.
 - basic_solver 12.
 Qed.
 
-Lemma thread_rfe_sb WF SC_PER_LOC : (rfe^{-1} ⨾ sb) ∩ Ev.same_tid ⊆ ∅₂.
+(* Lemma thread_rfe_sb WF SC_PER_LOC : (rfe^{-1} ⨾ sb) ∩ Ev.same_tid ⊆ ∅₂.
 Proof using.
 ie_unfolder; unfolder; unfold Ev.same_tid; ins; desf.
 hahn_rewrite (@wf_sbE G) in H1; unfolder in H1; desf.
@@ -581,7 +703,7 @@ eapply sb_semi_total_r in H0; try edone.
 2:  by intro; subst; eapply (rf_irr WF); edone.
 desf; eapply SC_PER_LOC; unfold eco; basic_solver 12.
 - eapply H2; eapply (@sb_trans G); edone. 
-Qed.
+Qed. *)
 
 Lemma co_sb_loc WF SC_PER_LOC : ⦗W⦘ ⨾ co^? ⨾ (sb ∩ same_loc)^? ⨾ ⦗W⦘ ⊆ co^?.
 Proof using.
