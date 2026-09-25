@@ -406,7 +406,7 @@ Qed.
 Lemma atomicity_alt WF SC_PER_LOC ATOM : rmw ∩ (fr ⨾ co) ⊆ ∅₂.
 Proof using.
   intros x y [RMW [z [FRXZ CO]]].
-  destruct (classic (sb x z)) as [XZ|NXZ].
+  destruct (classic (sb x z)) as [XZ|NXZ]. 
   - destruct (@rmw_sb_successor WF x y z RMW XZ) as [EQ|YZ].
     + subst z. exact (co_irr WF _ CO).
     + apply (SC_PER_LOC y). exists z. split; auto.

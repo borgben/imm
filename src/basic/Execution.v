@@ -91,13 +91,15 @@ Record Wf :=
       ~ Ev.is_init a -> ~ Ev.is_init b ->
       (Ev.index a < Ev.index b <->
        Lattice.lt (Lattice.uid_lattice Ev.INDEX_L) (Ev.uid a) (Ev.uid b));
+
     wf_sb_well_founded : well_founded sb;
     
     (* A fork is an event with two immediate, UID-incomparable successors. *)
     wf_fork_write : forall a b c,
-      immediate sb a b -> immediate sb a c ->
-      Lattice.incomparable (Lattice.uid_lattice Ev.INDEX_L)
-        (Ev.uid b) (Ev.uid c) -> W a;
+      immediate sb a b -> 
+      immediate sb a c ->
+      Lattice.incomparable (Lattice.uid_lattice Ev.INDEX_L) (Ev.uid b) (Ev.uid c) -> 
+      W a;
     
     (* A join is an event with two immediate, UID-incomparable predecessors. *)
     wf_join_read : forall a b c,
@@ -136,13 +138,9 @@ Record Wf :=
 
     rmw_dep_in_sb : rmw_dep ⊆ sb ;
     wf_rmw_depD : rmw_dep ≡ ⦗R⦘ ⨾ rmw_dep ⨾ ⦗R_ex⦘ ;
-(*     failed_rmw_fail : rmw_dep ⨾ rmw ⊆ ∅₂ ; *)
 
     wf_threads : forall e (EE : E e), threads_set (Ev.tid e);
   }.
-(*   ⟪  wf_rmw_deps : rmw ⊆ data ∪ addr ∪ ctrl ⟫ /\
-  ⟪  wf_rmw_ctrl : rmw ⨾ sb ⊆ ctrl ⟫. *)
-
 Implicit Type WF : Wf.
 
 (******************************************************************************)
